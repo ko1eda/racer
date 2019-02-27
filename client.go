@@ -1,9 +1,8 @@
-package rocket
+package racer
 
 import (
 	"fmt"
 	"log"
-	"net/http"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -24,20 +23,20 @@ const (
 )
 
 // A Client represents a wrapper for a socket, its job is to read and write to the socket
-// It reads any data from the socket and then broadcasts it onto a rooms global broadcast channel
-// the room then sends the message to all clients on their individual send buses
+// It reads any data from the socket and then broadcasts it onto a brokers global broadcast channel
+// the broker then sends the message to all clients on their individual send buses
 // the clients then push the messages into their sockets one by one propegating the message from one client to all other sockets
 // this works because sockets are like channels they are buffered, when one is being written to it is blocked, and when it is read from the data inside the
 // socket is removed.. So we must rebroadcast the data  when we read it to all listneing parties who will read it and then write it from their send channels
 // https://stackoverflow.com/questions/14241235/what-happens-when-i-write-data-to-a-blocking-socket-faster-than-the-other-side
 type Client struct {
-	socket *websocket.Conn // a socket is used to read from and write to which intern updates all clients in the room
-	room   *Room
+	socket *websocket.Conn // a socket is used to read from and write to which intern updates all clients in the broker
+	broker *Broker
 	send   chan []byte // each client has their own unique send channel for sending data from the broadcast channel into the socket
 	id     int
 }
 
-// A Message represents chat data sent between users in a room
+// A Message represents chat data sent between users in a broker
 type Message struct {
 	// sent        time.Time
 	// retrieved   time.Time
@@ -46,12 +45,13 @@ type Message struct {
 	body string
 }
 
-func (c *Client) readFromSocket() {
+// ReadFromSocket the client should use data from their send channel to update their socket
+func (c *Client) ReadFromSocket() {
 	// When this function finishes its execution
-	// close the socket if it is open and unregister this client from its Publisher aka its room
+	// close the socket if it is open and unregister this client from its Publisher aka its broker
 	defer func() {
 		c.socket.Close()
-		c.room.unregister <- c
+		c.broker.unregister <- c
 	}()
 
 	// The maximum bytes our read routines can read in from the socket is 512 bytes so 512 1 byte asci characters
@@ -70,11 +70,12 @@ func (c *Client) readFromSocket() {
 		}
 		fmt.Println(c.id, ": ", string(message))
 		// message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		c.room.broadcast <- message
+		c.broker.broadcast <- message
 	}
 }
 
-func (c *Client) writeToSocket() {
+// WriteToSocket the client should use data from their send channel to update their socket
+func (c *Client) WriteToSocket() {
 	ticker := time.NewTicker(pingPeriod)
 
 	defer func() {
@@ -90,7 +91,7 @@ func (c *Client) writeToSocket() {
 			fmt.Println("length of send channel inside write loop ", len(c.send))
 			c.socket.SetWriteDeadline(time.Now().Add(writeWait))
 
-			// If the clients send channel has been closed by the room then there was an error
+			// If the clients send channel has been closed by the broker then there was an error
 			// and this peer will send a close message to the socket, meaining that it (the clients) connection will be closed
 			if !ok {
 				c.socket.WriteMessage(websocket.CloseMessage, []byte{})
@@ -107,7 +108,7 @@ func (c *Client) writeToSocket() {
 				return
 			}
 
-			// write the message from the current clients send channel (which is filled with data from the rooms broadcast channel) to the socket
+			// write the message from the current clients send channel (which is filled with data from the brokers broadcast channel) to the socket
 			w.Write(msg)
 
 			// Check to see that there are no built up messages in the send channel
@@ -132,26 +133,4 @@ func (c *Client) writeToSocket() {
 		}
 	}
 
-}
-
-// StartClientInRoom spawns new client read and write processes and sets its room to
-// the provided room struct
-func StartClientInRoom(id int, room *Room, w http.ResponseWriter, r *http.Request) {
-	socket, err := upgrader.Upgrade(w, r, nil)
-
-	if err != nil {
-		panic(err)
-	}
-
-	c := Client{socket, room, make(chan []byte, 256), id}
-
-	c.room.register <- &c
-
-	go c.readFromSocket()
-	go c.writeToSocket()
-}
-
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
 }

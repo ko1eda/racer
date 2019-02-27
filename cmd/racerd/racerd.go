@@ -2,21 +2,19 @@ package main
 
 import (
 	"log"
-	"math/rand"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi"
-	"github.com/tinylttl/rocket"
+	"github.com/tinylttl/racer"
 )
 
 func main() {
-	room := rocket.NewRoom()
+	broker := racer.NewBroker()
 
-	room2 := rocket.NewRoom()
+	broker2 := racer.NewBroker()
 
-	go room.StartBroadcast()
-	go room2.StartBroadcast()
+	go broker.StartBroadcast()
+	go broker2.StartBroadcast()
 
 	r := chi.NewRouter()
 
@@ -24,13 +22,20 @@ func main() {
 	r.Get("/about", serveAbout)
 
 	r.Get("/chat", func(w http.ResponseWriter, r *http.Request) {
-		rand.Seed(time.Now().UnixNano())
-		id := rand.Intn(10)
-		rocket.StartClientInRoom(id, room, w, r)
+
+		b := racer.NewBroker()
+
+		c := &racer.Client{}
+
+		b.BrokerClientCon(c, w, r)
 	})
 
 	r.Get("/chat123", func(w http.ResponseWriter, r *http.Request) {
-		rocket.StartClientInRoom(2000, room2, w, r)
+		b := racer.NewBroker()
+
+		c := &racer.Client{}
+
+		b.BrokerClientCon(c, w, r)
 	})
 
 	// blocks our application
@@ -56,9 +61,9 @@ func serveAbout(w http.ResponseWriter, r *http.Request) {
 }
 
 func handle(w http.ResponseWriter, r *http.Request) {
-	// check if the room is already existing
+	// check if the broker is already existing
 
 	// then pass it to the client and thats it
 
-	// if not create a room start a broadcast and then pass it to the client
+	// if not create a broker start a broadcast and then pass it to the client
 }

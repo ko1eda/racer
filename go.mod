@@ -1,4 +1,4 @@
-module github.com/tinylttl/rocket
+module github.com/tinylttl/racer
 
 require (
 	github.com/go-chi/chi v4.0.2+incompatible

@@ -16,4 +16,4 @@
 
 */
 
-package rocket
+package racer
