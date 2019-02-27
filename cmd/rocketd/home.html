@@ -26,6 +26,7 @@ window.onload = function () {
         return false;
     };
     if (window["WebSocket"]) {
+        console.log(location.pathname.substring(1))
         conn = new WebSocket("ws://" + document.location.host + "/chat");
         conn.onclose = function (evt) {
             var item = document.createElement("div");

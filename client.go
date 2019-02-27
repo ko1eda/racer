@@ -34,6 +34,7 @@ type Client struct {
 	socket *websocket.Conn // a socket is used to read from and write to which intern updates all clients in the room
 	room   *Room
 	send   chan []byte // each client has their own unique send channel for sending data from the broadcast channel into the socket
+	id     int
 }
 
 // A Message represents chat data sent between users in a room
@@ -67,7 +68,7 @@ func (c *Client) readFromSocket() {
 			}
 			break
 		}
-		fmt.Println(string(message))
+		fmt.Println(c.id, ": ", string(message))
 		// message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 		c.room.broadcast <- message
 	}
@@ -135,14 +136,14 @@ func (c *Client) writeToSocket() {
 
 // StartClientInRoom spawns new client read and write processes and sets its room to
 // the provided room struct
-func StartClientInRoom(room *Room, w http.ResponseWriter, r *http.Request) {
+func StartClientInRoom(id int, room *Room, w http.ResponseWriter, r *http.Request) {
 	socket, err := upgrader.Upgrade(w, r, nil)
 
 	if err != nil {
 		panic(err)
 	}
 
-	c := Client{socket, room, make(chan []byte, 256)}
+	c := Client{socket, room, make(chan []byte, 256), id}
 
 	c.room.register <- &c
 
@@ -150,25 +151,7 @@ func StartClientInRoom(room *Room, w http.ResponseWriter, r *http.Request) {
 	go c.writeToSocket()
 }
 
-// NewClient returns a new chat client. The client listens for incoming messages on its socket and publishes them to its room
-// func NewClient() *Client {
-// 	return &Client{send: make(chan []byte)}
-// }
-
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 }
-
-// // StartClient opens a websocket connection on the given client and starts its read and write go routines
-// func StartClient(c *Client, w http.ResponseWriter, r *http.Request) {
-// 	// check origin headers and auth status before upgrading the request to a ws connection
-// 	conn, err := upgrader.Upgrade(w, r, nil)
-
-// 	if err != nil {
-// 		panic(err)
-// 	}
-
-// 	c.readFromSocket()
-// 	c.writeToSocket()
-// }
