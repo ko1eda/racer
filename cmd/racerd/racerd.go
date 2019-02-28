@@ -58,11 +58,3 @@ func serveAbout(w http.ResponseWriter, r *http.Request) {
 	}
 	http.ServeFile(w, r, "about.html")
 }
-
-func handle(w http.ResponseWriter, r *http.Request) {
-	// check if the broker is already existing
-
-	// then pass it to the client and thats it
-
-	// if not create a broker start a broadcast and then pass it to the client
-}

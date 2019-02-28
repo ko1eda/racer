@@ -42,13 +42,8 @@ type BrokeredClient interface {
 	Subscriber
 }
 
-// A Chat represents a wrapper for a socket, its job is to read and write to the socket
-// It reads any data from the socket and then broadcasts it onto a brokers global broadcast channel
-// the broker then sends the message to all clients on their individual send buses
-// the clients then push the messages into their sockets one by one propegating the message from one client to all other sockets
-// this works because sockets are like channels they are buffered, when one is being written to it is blocked, and when it is read from the data inside the
-// socket is removed.. So we must rebroadcast the data  when we read it to all listneing parties who will read it and then write it from their send channels
-// https://stackoverflow.com/questions/14241235/what-happens-when-i-write-data-to-a-blocking-socket-faster-than-the-other-side
+// A Chat represents a single client connection to our chat service.
+// A chat is a brokered client, we expect that it will be registered with a broker
 type Chat struct {
 	con        *websocket.Conn // a con is used to read from and write to which intern updates all clients in the broker
 	broadcast  chan<- []byte

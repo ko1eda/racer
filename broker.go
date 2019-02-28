@@ -7,9 +7,8 @@ type Subscriber interface {
 	Register(broadcast chan<- []byte, unregister chan chan<- []byte) (send chan<- []byte)
 }
 
-// A Broker represents an inidividual socket connection that can be shared
-// between multiple authenticated users. Authentication happens through our authentication server not part of this application
-// The room will interact with
+// A Broker represents a connection hub, anything registered with a broker will recieve updates
+// every time a message is pushed to its broadcast channel
 type Broker struct {
 	id          string
 	subscribers map[chan<- []byte]bool
