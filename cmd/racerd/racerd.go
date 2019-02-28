@@ -13,8 +13,8 @@ func main() {
 
 	broker2 := racer.NewBroker()
 
-	go broker.StartBroadcast()
-	go broker2.StartBroadcast()
+	go broker.Start()
+	go broker2.Start()
 
 	r := chi.NewRouter()
 
@@ -22,20 +22,19 @@ func main() {
 	r.Get("/about", serveAbout)
 
 	r.Get("/chat", func(w http.ResponseWriter, r *http.Request) {
+		c := racer.NewChat()
 
-		b := racer.NewBroker()
+		broker.RegisterSubscriber(c)
 
-		c := &racer.Client{}
-
-		b.BrokerClientCon(c, w, r)
+		c.Run(w, r)
 	})
 
 	r.Get("/chat123", func(w http.ResponseWriter, r *http.Request) {
-		b := racer.NewBroker()
+		c := racer.NewChat()
 
-		c := &racer.Client{}
+		broker2.RegisterSubscriber(c)
 
-		b.BrokerClientCon(c, w, r)
+		c.Run(w, r)
 	})
 
 	// blocks our application
