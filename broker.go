@@ -1,12 +1,5 @@
 package racer
 
-// Subscriber represents a client who is elegable to recieve broadcasts from the broker
-// A client must be able to register with the broker and provide a buffered channel which the broker
-// can return information on.
-type Subscriber interface {
-	Register(broadcast chan<- []byte, unregister chan chan<- []byte) (send chan<- []byte)
-}
-
 // A Broker represents a connection hub, anything registered with a broker will recieve updates
 // every time a message is pushed to its broadcast channel
 type Broker struct {
@@ -34,6 +27,7 @@ func NewBroker() *Broker {
 // If a client is unregistered from the Broker it will remove it from its list of subscribers and close its channel
 // If the Brokers boradcast channel recieves a message, it will relay that message to all subscribers in its map through their respective send channels
 func (b *Broker) Start() {
+loop:
 	for {
 		select {
 		case client := <-b.register:
@@ -42,6 +36,10 @@ func (b *Broker) Start() {
 		case unregistered := <-b.unregister:
 			delete(b.subscribers, unregistered)
 			close(unregistered)
+
+			if len(b.subscribers) == 0 {
+				break loop
+			}
 
 		case msg := <-b.broadcast:
 			for client := range b.subscribers {
