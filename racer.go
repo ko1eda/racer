@@ -14,8 +14,6 @@ type Subscriber interface {
 // Client a client must be able to read from some kind of connection, whether it be tcp, rcp, webscoket etc
 // It must also run a process that is able to dameonize well it reads to and write from said connection
 type Client interface {
-	ReadFromCon()
-	WriteToCon()
 	Run(w http.ResponseWriter, r *http.Request)
 }
 
@@ -25,6 +23,10 @@ type BrokeredClient interface {
 	Client
 	Subscriber
 }
+
+// type chatID string
+
+// type brokermap map[chatID]*Broker
 
 // type BrokerManager struct {
 // 	map[string]*Broker

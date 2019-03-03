@@ -38,8 +38,8 @@ type Chat struct {
 	id         int
 }
 
-// NewChat returns a new Chat client instance
-func NewChat() BrokeredClient {
+// NewClient returns a new Chat client instance
+func NewClient() BrokeredClient {
 	return &Chat{id: rand.Intn(100000), send: make(chan []byte, 256)}
 }
 
@@ -60,12 +60,12 @@ func (c *Chat) Run(w http.ResponseWriter, r *http.Request) {
 
 	c.con = con
 
-	go c.ReadFromCon()
-	go c.WriteToCon()
+	go c.readFromCon()
+	go c.writeToCon()
 }
 
 // ReadFromCon the client reads from its connection and sends the message to any other sibling clients through its brokers broadcast channel
-func (c *Chat) ReadFromCon() {
+func (c *Chat) readFromCon() {
 	// Defere the closing of the con and deregistration to when this function terminates
 	// it will only terminate if the client disconnects or there is an error
 	defer func() {
@@ -93,7 +93,7 @@ func (c *Chat) ReadFromCon() {
 }
 
 // WriteToCon the client should use data from their send channel to update their con
-func (c *Chat) WriteToCon() {
+func (c *Chat) writeToCon() {
 	ticker := time.NewTicker(pingPeriod)
 
 	defer func() {
@@ -150,7 +150,6 @@ func (c *Chat) WriteToCon() {
 			}
 		}
 	}
-
 }
 
 var upgrader = websocket.Upgrader{
