@@ -3,7 +3,6 @@ package racer
 import (
 	"fmt"
 	"net/http"
-	"sync"
 
 	"github.com/go-chi/chi"
 )
@@ -13,9 +12,7 @@ import (
 // The goal is that we only have one broker running for a given chat endpoint (chatID).
 // The brokers job is to manage each client connection that is active at that endpoint.
 // If a brokers clients all unregister, it will terminate and remove itself from the broker map.
-func ChatHandler(brokerm map[string]*Broker) http.HandlerFunc {
-	var mu sync.RWMutex
-
+func ChatHandler(bm *BrokerManager) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		chatID := chi.URLParam(r, "chatID")
 
@@ -26,29 +23,21 @@ func ChatHandler(brokerm map[string]*Broker) http.HandlerFunc {
 
 		fmt.Println("Chat Id: ", chatID)
 
-		mu.RLock()
-		b, exists := brokerm[chatID]
-		mu.RUnlock()
+		b, exists := bm.BrokerExists(chatID)
 		if !exists {
 			b = NewBroker()
 
-			mu.Lock()
-			brokerm[chatID] = b
-			defer mu.Unlock()
-
-			fmt.Printf("%+v\n", brokerm)
+			bm.Register(chatID, b)
 
 			// Start the broker in its own go routine since it doesn't already exit.
 			go func() {
 				b.Start()
-				mu.Lock()
-				delete(brokerm, chatID)
-				defer mu.Unlock()
+				bm.Unregister(chatID)
 			}()
 		}
-
 		c := NewClient()
 		b.RegisterSubscriber(c)
-		c.Run(w, r)
+
+		c.Run(w, r) // this is non blocking
 	})
 }
