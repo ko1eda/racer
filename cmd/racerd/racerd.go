@@ -12,7 +12,7 @@ func main() {
 	r := chi.NewRouter()
 	// r.Get("/racer/chat/{chadID:[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}}")
 
-	brokerm := make(map[string]*racer.Broker)
+	brokerm := racer.NewManager()
 
 	r.Get("/racer/chat", serveHome)
 	r.Get("/racer/cat", serveAbout)

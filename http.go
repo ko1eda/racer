@@ -8,10 +8,10 @@ import (
 )
 
 // ChatHandler handles all GET requests to ../chat/{chatID}
-// It takes a map that will map chatIDs to Brokers.
+// It takes a broker manager that will map chatIDs to running brokers.
 // The goal is that we only have one broker running for a given chat endpoint (chatID).
 // The brokers job is to manage each client connection that is active at that endpoint.
-// If a brokers clients all unregister, it will terminate and remove itself from the broker map.
+// If a brokers clients all unregister, it will terminate and remove itself from its manager.
 func ChatHandler(bm *BrokerManager) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		chatID := chi.URLParam(r, "chatID")
@@ -23,13 +23,9 @@ func ChatHandler(bm *BrokerManager) http.HandlerFunc {
 
 		fmt.Println("Chat Id: ", chatID)
 
-		b, exists := bm.BrokerExists(chatID)
+		b, exists := bm.ExistsOrNew(chatID)
 		if !exists {
-			b = NewBroker()
-
-			bm.Register(chatID, b)
-
-			// Start the broker in its own go routine since it doesn't already exit.
+			fmt.Println("NOT EXISTS CALLED IN HANDLER")
 			go func() {
 				b.Start()
 				bm.Unregister(chatID)

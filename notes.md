@@ -15,6 +15,7 @@
             + https://github.com/posener/wstest/blob/master/dialer.go
             + https://godoc.org/github.com/gorilla/websocket#Dialer
             + https://stackoverflow.com/questions/32745716/i-need-to-connect-to-an-existing-websocket-server-using-go-lang
+            + Cannont use the same endpoint to connect via sock and http https://stackoverflow.com/questions/48006498/is-this-possible-to-server-websocket-handler-and-normal-servlet-over-same-contex
     + Test2: Check that two concurrent requests to the same chatID creates only one new entry in our MAP
     + Test3: Check that two concurrent exits from the same chat Does not cause a race condition (writing to brokermap)
 
@@ -32,7 +33,7 @@
     1. Accessing map concurrently in go https://stackoverflow.com/questions/52512915/how-to-solve-concurrency-access-of-golang-map
     2. Read Write Mutex in depth https://stackoverflow.com/questions/19148809/how-to-use-rwmutex-in-golang
 + Buffers & IO Pipes explained - https://medium.com/stupid-gopher-tricks/streaming-data-in-go-without-buffering-3285ddd2a1e5
-
+    + bytes buffers and when to use them and how they alloc mem https://syslog.ravelin.com/bytes-buffer-i-thought-you-were-my-friend-4148fd001229
 
 + Work on implementing client interface to decouple brokers from clients 
 + Figure out what time variables are doing in client.go
