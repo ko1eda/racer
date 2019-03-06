@@ -9,33 +9,14 @@ import (
 )
 
 func main() {
-	broker := racer.NewBroker()
-
-	broker2 := racer.NewBroker()
-
-	go broker.Start()
-	go broker2.Start()
-
 	r := chi.NewRouter()
+	// r.Get("/racer/chat/{chadID:[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}}")
 
-	r.Get("/", serveHome)
-	r.Get("/about", serveAbout)
+	brokerm := racer.NewManager()
 
-	r.Get("/chat", func(w http.ResponseWriter, r *http.Request) {
-		c := racer.NewChat()
-
-		broker.RegisterSubscriber(c)
-
-		c.Run(w, r)
-	})
-
-	r.Get("/chat123", func(w http.ResponseWriter, r *http.Request) {
-		c := racer.NewChat()
-
-		broker2.RegisterSubscriber(c)
-
-		c.Run(w, r)
-	})
+	r.Get("/racer/chat", serveHome)
+	r.Get("/racer/cat", serveAbout)
+	r.Get("/racer/chat/{chatID}", racer.ChatHandler(brokerm))
 
 	// blocks our application
 	http.ListenAndServe(":80", r)

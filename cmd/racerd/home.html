@@ -27,7 +27,7 @@ window.onload = function () {
     };
     if (window["WebSocket"]) {
         console.log(location.pathname.substring(1))
-        conn = new WebSocket("ws://" + document.location.host + "/chat");
+        conn = new WebSocket("ws://" + document.location.host + "/racer/chat/23");
         conn.onclose = function (evt) {
             var item = document.createElement("div");
             item.innerHTML = "<b>Connection closed.</b>";

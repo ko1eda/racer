@@ -28,20 +28,6 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-// Client a client must be able to read from some kind of connection, whether it be tcp, rcp, webscoket etc
-// It must also run a process that is able to dameonize well it reads to and write from said connection
-type Client interface {
-	ReadFromCon()
-	WriteToCon()
-	Run(w http.ResponseWriter, r *http.Request)
-}
-
-// BrokeredClient is a client that utilizes the message broker to send and recieve updates
-type BrokeredClient interface {
-	Client
-	Subscriber
-}
-
 // A Chat represents a single client connection to our chat service.
 // A chat is a brokered client, we expect that it will be registered with a broker
 type Chat struct {
@@ -52,17 +38,8 @@ type Chat struct {
 	id         int
 }
 
-// A Message represents chat data sent between users in a broker
-type Message struct {
-	// sent        time.Time
-	// retrieved   time.Time
-	// senderID    int
-	// retrieverID int
-	body string
-}
-
-// NewChat returns a new Chat client instance
-func NewChat() BrokeredClient {
+// NewClient returns a new Chat client instance
+func NewClient() BrokeredClient {
 	return &Chat{id: rand.Intn(100000), send: make(chan []byte, 256)}
 }
 
@@ -83,12 +60,12 @@ func (c *Chat) Run(w http.ResponseWriter, r *http.Request) {
 
 	c.con = con
 
-	go c.ReadFromCon()
-	go c.WriteToCon()
+	go c.readFromCon()
+	go c.writeToCon()
 }
 
 // ReadFromCon the client reads from its connection and sends the message to any other sibling clients through its brokers broadcast channel
-func (c *Chat) ReadFromCon() {
+func (c *Chat) readFromCon() {
 	// Defere the closing of the con and deregistration to when this function terminates
 	// it will only terminate if the client disconnects or there is an error
 	defer func() {
@@ -116,7 +93,7 @@ func (c *Chat) ReadFromCon() {
 }
 
 // WriteToCon the client should use data from their send channel to update their con
-func (c *Chat) WriteToCon() {
+func (c *Chat) writeToCon() {
 	ticker := time.NewTicker(pingPeriod)
 
 	defer func() {
@@ -173,10 +150,18 @@ func (c *Chat) WriteToCon() {
 			}
 		}
 	}
-
 }
 
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
+}
+
+// A Message represents chat data sent between users in a broker
+type Message struct {
+	// sent        time.Time
+	// retrieved   time.Time
+	// senderID    int
+	// retrieverID int
+	body string
 }
