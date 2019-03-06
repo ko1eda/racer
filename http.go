@@ -1,7 +1,6 @@
 package racer
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi"
@@ -21,19 +20,19 @@ func ChatHandler(bm *BrokerManager) http.HandlerFunc {
 			return
 		}
 
-		fmt.Println("Chat Id: ", chatID)
+		// fmt.Println("Chat Id: ", chatID)
 
-		b, exists := bm.ExistsOrNew(chatID)
-		if !exists {
-			fmt.Println("NOT EXISTS CALLED IN HANDLER")
-			go func() {
-				b.Start()
-				bm.Unregister(chatID)
-			}()
-		}
-		c := NewClient()
-		b.RegisterSubscriber(c)
-
-		c.Run(w, r) // this is non blocking
+		bm.Lookup(chatID, func(found bool, b *Broker) {
+			if !found {
+				go func() {
+					// fmt.Println("NOT FOUND CALLED IN HANDLER")
+					b.Start() // blocking
+					bm.Remove(chatID)
+				}()
+			}
+			c := NewClient()
+			b.RegisterSubscriber(c)
+			c.Run(w, r)
+		})
 	})
 }

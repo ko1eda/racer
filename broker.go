@@ -1,7 +1,6 @@
 package racer
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -16,9 +15,9 @@ type Broker struct {
 }
 
 // NewBroker creates a new Broker
-func NewBroker() *Broker {
+func NewBroker(id string) *Broker {
 	return &Broker{
-		id:          "MYCOOLBroker",
+		id:          id,
 		subscribers: make(map[chan<- []byte]bool),
 		broadcast:   make(chan []byte),
 		register:    make(chan chan<- []byte),
@@ -70,30 +69,57 @@ type BrokerManager struct {
 	mu      sync.Mutex
 }
 
-// NewManager creates a new BrokerManager
-func NewManager() *BrokerManager {
-	return &BrokerManager{brokerm: make(map[string]*Broker)}
+// NewManager creates a new BrokerManager. A new map is intialized by default if WithMap option is not passed in.
+func NewManager(opts ...func(*BrokerManager)) *BrokerManager {
+	bm := BrokerManager{
+		brokerm: make(map[string]*Broker),
+	}
+
+	for _, opt := range opts {
+		opt(&bm)
+	}
+
+	return &bm
 }
 
-// // Register registers a new broker with the manager, it returns true
-// // if the registration succeeded and false if not
-// func (bm *BrokerManager) Register(key string, b *Broker) bool {
-// 	if _, exists := bm.BrokerExists(key); !exists {
-// 		bm.mu.Lock()
-// 		fmt.Println("called register")
-// 		bm.brokerm[key] = b
-// 		bm.mu.Unlock()
-// 		return true
-// 	}
+// WithMap allows you to pass in your own map that the manager will use to map keys to active brokers
+// this can be useful in testing where you would like direct access to the managers internal mappings
+func WithMap(m map[string]*Broker) func(*BrokerManager) {
+	return func(bm *BrokerManager) {
+		bm.brokerm = m
+	}
+}
 
-// 	return false
-// }
+// Lookup searches its map for a running broker with the given id.
+// The callback will be called regardless of whether or not a broker is found.
+//
+// If a broker is found, we will pass it in and set found to true.
+// If a broker is not found a new one is created and registered in the map, found will then be set to false and the new broker is passed to the cb.
+//
+// NOTE: If you would like to remove a broker from the manager, make sure you always call the BrokerManagers Remove method as it is thread safe.
+func (bm *BrokerManager) Lookup(key string, cb func(found bool, b *Broker)) {
+	bm.mu.Lock()
+	broker, exists := bm.brokerm[key]
 
-// Unregister unregisters a new broker with the manager, deleting its key
-// from its map it returns true if the key was found and delete false if it was not found
-func (bm *BrokerManager) Unregister(key string) bool {
+	if !exists {
+		broker := NewBroker(key)
+		bm.brokerm[key] = broker
+		bm.mu.Unlock()
+
+		cb(false, broker)
+		return
+	}
+
+	bm.mu.Unlock()
+	cb(true, broker)
+}
+
+// Remove removes a broker from the manager deleting the key from its map
+// It returns true if the key was found and deleted false if it was not found.
+func (bm *BrokerManager) Remove(key string) bool {
 	bm.mu.Lock()
 	defer bm.mu.Unlock()
+
 	if _, exists := bm.brokerm[key]; exists {
 		delete(bm.brokerm, key)
 		return true
@@ -102,41 +128,81 @@ func (bm *BrokerManager) Unregister(key string) bool {
 	return false
 }
 
-// BrokerExists uses a Read lock to check if a broker already exists for a given key
-// It returns a boolean true if it does or false if does not and closes the readlock.
-func (bm *BrokerManager) BrokerExists(key string) (*Broker, bool) {
+// Exists uses a lock to check if a broker already exists for a given key
+// It returns a boolean true if it does or false if does not and closes the lock.
+func (bm *BrokerManager) Exists(key string) (*Broker, bool) {
 	bm.mu.Lock()
 	defer bm.mu.Unlock()
-	broker, exists := bm.brokerm[key]
-	fmt.Println("called brokerexists ", exists)
+	b, exists := bm.brokerm[key]
 
 	if exists {
-		return broker, true
+		return b, true
 	}
 
 	return nil, false
 }
 
-// ExistsOrNew checks to see if a broker exists for a given chatID.
-// if it does not exist already, it creates it and adds an entry to its map and returns a new broker and false.
-// If it does already exist it returns the entry from the map and true
-//
-// It uses a sync.Mutex to keep its underlying map reads and writes thread safe.
-func (bm *BrokerManager) ExistsOrNew(key string) (*Broker, bool) {
-	bm.mu.Lock()
-	defer bm.mu.Unlock()
+// Result contains the result of a lookup from the broker manager
+// It will contain a Broker and a boolean field Found which will be true
+// if the broker was found and false if it was not.
+// If the broker was not found the manager creates one and stores it under the lookup key.
+// type Result struct {
+// 	*Broker
+// 	Found bool
+// }
+// // Lookup exposes an unbuffered channel on the broker manager
+// // it takes a string key and will check the managers lookup table
+// // to determine if a broker exists for the given key
+// func (bm *BrokerManager) Lookup() chan<- string {
+// 	go bm.runLookup()
+// 	return bm.lookup
+// }
 
-	broker, exists := bm.brokerm[key]
+// // Result returns a channel that containts the results from each lookup
+// func (bm *BrokerManager) Result() <-chan Result {
+// 	return bm.result
+// }
 
-	if exists {
-		fmt.Println("BROKER EXISTS SO WE RETURN IT")
-		return broker, true
-	}
+// func (bm *BrokerManager) runLookup() {
+// 	for {
+// 		select {
+// 		case key := <-bm.lookup:
+// 			broker, exists := bm.brokerm[key]
+// 			if !exists {
+// 				broker = key
+// 				bm.brokerm[key] = broker
 
-	broker = NewBroker()
-	bm.brokerm[key] = broker
+// 				bm.result <- Result{broker, false}
+// 				break
+// 			}
 
-	fmt.Println("MAKE NEW BROKER")
+// 			bm.result <- Result{broker, true}
+// 		}
+// 	}
+// }
+// Lookup exposes an unbuffered channel on the broker manager
+// it takes a string key and will check the managers lookup table
+// to determine if a broker exists for the given key
 
-	return broker, false
-}
+// // Result returns a channel that containts the results from each lookup
+// func (bm *BrokerManager) Result() <-chan Result {
+// 	return bm.result
+// }
+
+// func (bm *BrokerManager) runLookup() {
+// 	for {
+// 		select {
+// 		case key := <-bm.lookup:
+// 			broker, exists := bm.brokerm[key]
+// 			if !exists {
+// 				broker = key
+// 				bm.brokerm[key] = broker
+
+// 				bm.result <- Result{broker, false}
+// 				break
+// 			}
+
+// 			bm.result <- Result{broker, true}
+// 		}
+// 	}
+// }

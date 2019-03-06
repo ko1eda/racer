@@ -23,11 +23,3 @@ type BrokeredClient interface {
 	Client
 	Subscriber
 }
-
-// type chatID string
-
-// type brokermap map[chatID]*Broker
-
-// type BrokerManager struct {
-// 	map[string]*Broker
-// }

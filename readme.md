@@ -5,7 +5,7 @@ Racer is a pet project I am working on as I continue to learn go. In currently s
 Racer is in the most basic stable working state. 
 
 ### TODO:
-+ Write tests
++ Write tests (In Progress!)
 + Add API routes
 + Add persistence layer for previous messages
 + Write Vuejs client
