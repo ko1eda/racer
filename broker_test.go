@@ -7,6 +7,7 @@ import (
 	"github.com/tinylttl/racer"
 )
 
+// TestLookup tests the basic functionality of the BrokerManagers Lookup method
 func TestLookup(t *testing.T) {
 	cases := []struct {
 		name       string
@@ -49,7 +50,7 @@ func TestLookup(t *testing.T) {
 	}
 }
 
-// LookupConcurrent ensures that the number of lookups stays consistent across multiple go routines,
+// TestLookupConcurrent ensures that the number of lookups stays consistent across multiple go routines,
 // It tests that only one new broker is ever created if one does not exist for a given key.
 func TestLookupConcurrent(t *testing.T) {
 	cases := []struct {
@@ -91,6 +92,78 @@ func TestLookupConcurrent(t *testing.T) {
 				got++
 			}
 
+			if got != tc.want {
+				t.Fatalf("got: %d, want: %d", got, tc.want)
+			}
+		})
+	}
+}
+
+// TestRemoveConcurrent tests that multiple concurrent calls to
+// a managers remove function can be made safely.
+// These tests cover all code in the Remove function
+func TestRemoveConcurrent(t *testing.T) {
+	cases := []struct {
+		testm map[string]*racer.Broker
+		name  string
+		keys  []string // to remove
+		want  int
+	}{
+		{
+			name: "Removing multiple brokers at once should cause no error",
+			keys: []string{"10291", "191", "1589Adx1"},
+			testm: map[string]*racer.Broker{
+				"10291":    racer.NewBroker("10291"),
+				"xx90":     racer.NewBroker("xx90"),
+				"191":      racer.NewBroker("191"),
+				"12":       racer.NewBroker("12"),
+				"1589Adx1": racer.NewBroker("1589Adx1"),
+			},
+			want: 2,
+		},
+		{
+			name: "Removing multiple non existent keys should cause no error",
+			keys: []string{"10291", "191", "1589Adx1"},
+			testm: map[string]*racer.Broker{
+				"11111": racer.NewBroker("11111"),
+			},
+			want: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := len(tc.testm)
+			manager := racer.NewManager(racer.WithMap(tc.testm))
+
+			i := 0
+			done := make(chan struct{}, len(tc.keys))
+			for i < len(tc.keys) {
+				// one go routine per removal simulates one broker per chatID simulatenously
+				// removing itself from the manager
+				// EXAMPLE: a scenario where mulltiple different chats have all their clients log out at the same time
+				// this should not cause an issue with the manager.
+				go func(i int) {
+					if removed := manager.Remove(tc.keys[i]); !removed {
+						if got != tc.want {
+							t.Fatalf("got: %d, want: %d", got, tc.want)
+						}
+					}
+					done <- struct{}{}
+				}(i)
+
+				i++
+			}
+
+			d := len(tc.keys)
+			for d > 0 {
+				<-done
+				d--
+			}
+
+			// the final size of the map should be
+			// the intial size of map - num keys removed
+			got = len(tc.testm)
 			if got != tc.want {
 				t.Fatalf("got: %d, want: %d", got, tc.want)
 			}
