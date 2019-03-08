@@ -58,8 +58,8 @@ loop:
 	}
 }
 
-// RegisterSubscriber brokers a client connection - that is it adds a client to its list of subscribers
-// to broadcast to. And upgrades the client to a socket connection
+// RegisterSubscriber registers a new send channel with the broker. Clients will recieve on this channel
+// whenever there is a message sent to the brokers broadcast channel. It also provides the client with an unregister channel.
 func (b *Broker) RegisterSubscriber(s Subscriber) { b.register <- s.Register(b.broadcast, b.unregister) }
 
 // BrokerManager keeps a mapping of chatIDs and brokers

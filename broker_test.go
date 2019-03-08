@@ -59,8 +59,8 @@ func TestLookupConcurrent(t *testing.T) {
 		count chan struct{}
 		want  int
 	}{
-		{name: "Found should be false only once if no broker exists for a key", keys: []string{"23"}, count: make(chan struct{}, 15), want: 1},
-		{name: "Two lookups to different keys containing no entries should create two different brokers", keys: []string{"23", "24"}, count: make(chan struct{}, 15), want: 2},
+		{name: "It sets found to false only once if no broker is found for a key", keys: []string{"23"}, count: make(chan struct{}, 15), want: 1},
+		{name: "It creates a new broker for each new key it encounters", keys: []string{"23", "24"}, count: make(chan struct{}, 15), want: 2},
 	}
 
 	for _, tc := range cases {
@@ -110,7 +110,7 @@ func TestRemoveConcurrent(t *testing.T) {
 		want  int
 	}{
 		{
-			name: "Removing multiple brokers at once should cause no error",
+			name: "It removes multiple brokers at once",
 			keys: []string{"10291", "191", "1589Adx1"},
 			testm: map[string]*racer.Broker{
 				"10291":    racer.NewBroker("10291"),
@@ -122,7 +122,7 @@ func TestRemoveConcurrent(t *testing.T) {
 			want: 2,
 		},
 		{
-			name: "Removing multiple non existent keys should cause no error",
+			name: "It handles removal of non-existant keys",
 			keys: []string{"10291", "191", "1589Adx1"},
 			testm: map[string]*racer.Broker{
 				"11111": racer.NewBroker("11111"),
@@ -169,4 +169,71 @@ func TestRemoveConcurrent(t *testing.T) {
 			}
 		})
 	}
+}
+
+type subscriber interface {
+	Register(broadcast chan<- []byte, unregister chan chan<- []byte) (send chan<- []byte)
+}
+
+type client struct {
+	broadcast  chan<- []byte
+	unregister chan chan<- []byte
+	send       chan []byte
+}
+
+func (c *client) Register(broadcast chan<- []byte, unregister chan chan<- []byte) chan<- []byte {
+	c.broadcast = broadcast
+	c.unregister = unregister
+	c.send = make(chan []byte)
+	return c.send
+}
+
+func TestStart(t *testing.T) {
+	// we have a broker it runs
+	cases := []struct {
+		name   string
+		want   []byte
+		broker *racer.Broker
+	}{
+		{
+			name:   "It registers subscribers",
+			broker: racer.NewBroker("x"),
+			want:   []byte("Test Message"),
+		},
+		{
+			name:   "It unregisters subscribers",
+			broker: racer.NewBroker("x"),
+			want:   make([]byte, 1),
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			sub := &client{}
+
+			go func() {
+				tc.broker.Start()
+			}()
+
+			tc.broker.RegisterSubscriber(sub)
+
+			sub.broadcast <- tc.want
+
+			if got := <-sub.send; string(got) != string(tc.want) {
+				t.Fatalf("got: %s, want: %s", string(got), tc.want)
+			}
+
+			// if we get something other than a close signal on the chan we have a problem
+			sub.unregister <- sub.send
+			if got, ok := <-sub.send; ok {
+				t.Fatalf("got: %s, want: %s", string(got), string(tc.want))
+			}
+		})
+	}
+	// we want to register a new client
+
+	// we want to unregister a client
+
+	// we want to
+
 }
