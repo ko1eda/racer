@@ -52,6 +52,11 @@ func (c *Chat) Register(broadcast chan<- []byte, unregister chan chan<- []byte) 
 
 // Run starts a deamonized chat instance
 func (c *Chat) Run(w http.ResponseWriter, r *http.Request) {
+	var upgrader = websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+	}
+
 	con, err := upgrader.Upgrade(w, r, nil)
 
 	if err != nil {
@@ -150,11 +155,6 @@ func (c *Chat) writeToCon() {
 			}
 		}
 	}
-}
-
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
 }
 
 // A Message represents chat data sent between users in a broker
