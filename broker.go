@@ -2,26 +2,39 @@ package racer
 
 import (
 	"sync"
+	"time"
 )
 
 // A Broker represents a connection hub, anything registered with a broker will recieve updates
 // every time a message is pushed to its broadcast channel
 type Broker struct {
 	id          string
-	subscribers map[chan<- []byte]bool
-	broadcast   chan []byte
-	register    chan chan<- []byte
-	unregister  chan chan<- []byte
+	subscribers map[chan<- *Message]bool
+	broadcast   chan *Message
+	register    chan chan<- *Message
+	unregister  chan chan<- *Message
 }
+
+// Message is sent through the brokers broadcast channel and relayed to any listeners through
+// their respective send channels.
+type Message struct {
+	Recieved time.Time   // when the broker got the message on its broadcast channel
+	Sent     time.Time   // when the broker sent the message to all its registered client channels
+	Payload  interface{} // any clients using the same broker should be expecting the same type of message
+}
+
+// func NewMessage(Payloadinterface{}) *Message {
+// 	return &Message{time.Now(), b}
+// }
 
 // NewBroker creates a new Broker
 func NewBroker(id string) *Broker {
 	return &Broker{
 		id:          id,
-		subscribers: make(map[chan<- []byte]bool),
-		broadcast:   make(chan []byte),
-		register:    make(chan chan<- []byte),
-		unregister:  make(chan chan<- []byte),
+		subscribers: make(map[chan<- *Message]bool),
+		broadcast:   make(chan *Message),
+		register:    make(chan chan<- *Message),
+		unregister:  make(chan chan<- *Message),
 	}
 }
 
@@ -35,6 +48,9 @@ loop:
 	for {
 		select {
 		case client := <-b.register:
+			// might need to make this concurrent safe test to make sure,
+			// register is non-blocking since its on select so it is possible that multiple
+			// reads or reads and writes may occur simultaneously. TEST THIS
 			b.subscribers[client] = true
 
 		case unregistered := <-b.unregister:
@@ -49,6 +65,7 @@ loop:
 			for client := range b.subscribers {
 				select {
 				case client <- msg:
+					// msg.Recieved = time.Now() // does cause a race condition
 				default:
 					close(client)
 					delete(b.subscribers, client)

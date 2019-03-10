@@ -171,20 +171,16 @@ func TestRemoveConcurrent(t *testing.T) {
 	}
 }
 
-type subscriber interface {
-	Register(broadcast chan<- []byte, unregister chan chan<- []byte) (send chan<- []byte)
-}
-
 type client struct {
-	broadcast  chan<- []byte
-	unregister chan chan<- []byte
-	send       chan []byte
+	broadcast  chan<- *racer.Message
+	unregister chan chan<- *racer.Message
+	send       chan *racer.Message
 }
 
-func (c *client) Register(broadcast chan<- []byte, unregister chan chan<- []byte) chan<- []byte {
+func (c *client) Register(broadcast chan<- *racer.Message, unregister chan chan<- *racer.Message) chan<- *racer.Message {
 	c.broadcast = broadcast
 	c.unregister = unregister
-	c.send = make(chan []byte)
+	// c.send = make(chan *racer.Message, 1) // buff of 1 allows the channel to recieve directly after it is created, which we need to make the test pass
 	return c.send
 }
 
@@ -209,24 +205,32 @@ func TestStart(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			sub := &client{}
+			sub := &client{send: make(chan *racer.Message)}
+			sub2 := &client{send: make(chan *racer.Message)}
 
 			go func() {
 				tc.broker.Start()
 			}()
 
 			tc.broker.RegisterSubscriber(sub)
+			tc.broker.RegisterSubscriber(sub2)
 
-			sub.broadcast <- tc.want
+			// by putting this in a goroutine we ensure that
+			// the statement below will block until sub.send recieves a value
+			// without putting broadcast in a goroutine we were writing to subs send channel before
+			// anything was waiting to recieve, so the select statement inside broker was defaulting and closing the channel
+			// an alternative would be to use buffered channels of 1 so that the channels could recieve before they were ready
+			// here we block indefinitely until we get a signal so both clients have enough time to fully intialize their send channels
+			go func() { sub.broadcast <- &racer.Message{Payload: tc.want} }()
 
-			if got := <-sub.send; string(got) != string(tc.want) {
-				t.Fatalf("got: %s, want: %s", string(got), tc.want)
+			if got := <-sub.send; string(got.Payload.([]byte)) != string(tc.want) {
+				t.Fatalf("got: %s, want: %s", string(got.Payload.([]byte)), tc.want)
 			}
 
 			// if we get something other than a close signal on the chan we have a problem
 			sub.unregister <- sub.send
 			if got, ok := <-sub.send; ok {
-				t.Fatalf("got: %s, want: %s", string(got), string(tc.want))
+				t.Fatalf("got: %s, want: %s", string(got.Payload.([]byte)), string(tc.want))
 			}
 		})
 	}

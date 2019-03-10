@@ -8,7 +8,7 @@ import (
 // A client must be able to register with the broker and provide a buffered channel which the broker
 // can return information on.
 type Subscriber interface {
-	Register(broadcast chan<- []byte, unregister chan chan<- []byte) (send chan<- []byte)
+	Register(broadcast chan<- *Message, unregister chan chan<- *Message) (send chan<- *Message)
 }
 
 // Client a client must be able to read from some kind of connection, whether it be tcp, rcp, webscoket etc

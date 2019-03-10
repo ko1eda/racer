@@ -1,14 +1,15 @@
 ### Design
 
 
-### Setting errors on response writier
-+ https://stackoverflow.com/questions/40096750/how-to-set-http-status-code-on-http-responsewriter
-
++ Add database support for retreival of chats for a given id 
++ research backing up data on client interruption (how can I block for a certain period of time and wait for the client to reconnect and if not store their data )
++ Encryption of data over socket (concurrency likely here encrypt/decrypt functions. goroutines that store broadcast the decrypted/encrypted data on the Connection Managers (Rooms) boradcast channel)
 
 ## Tests
 ### Todo
-1. Write tests to veryify the clients are being created correctly in the correct rooms(hubs/managers/broker)
-    1. __ACTIVE__ Test1: Test that two requests to the same chatid creates only one new entry in our MAP
+1. Done
+ + Write tests to veryify the clients are being created correctly in the correct rooms(hubs/managers/broker)
+    1. _Test1: Test that two requests to the same chatid creates only one new entry in our MAP
         + Removed race condition BUT still have to figure out how to upgrade the connection to a socket 
         ``` panic: websocket: response does not implement http.Hijacker ```
         + Make own websocket client also disect the code from the first bullet and figure out what it is doing (in relation to testing a websocket connection)
@@ -19,10 +20,9 @@
     + Test2: Check that two concurrent requests to the same chatID creates only one new entry in our MAP
     + Test3: Check that two concurrent exits from the same chat Does not cause a race condition (writing to brokermap)
 
-- Stop the broker if all clients have left and remove it from the map so it doesn't stay running for no reason (needs testing)
 
 ## General Todo
-+ __Implement go client for connecting to the chat server__ https://stackoverflow.com/questions/32745716/i-need-to-connect-to-an-existing-websocket-server-using-go-lang
++ Possibly Implement go client for connecting to the chat server https://stackoverflow.com/questions/32745716/i-need-to-connect-to-an-existing-websocket-server-using-go-lang
 + Add os signal package to our racerd and use context with each route, this way we can gracefully shutdown the program if something happens 
     + Put server on a select with a signal channel
     + If the server fails cancel parent context, if the signal is canceled cancel parent context 
@@ -35,15 +35,23 @@
 + Buffers & IO Pipes explained - https://medium.com/stupid-gopher-tricks/streaming-data-in-go-without-buffering-3285ddd2a1e5
     + bytes buffers and when to use them and how they alloc mem https://syslog.ravelin.com/bytes-buffer-i-thought-you-were-my-friend-4148fd001229
 
-+ Work on implementing client interface to decouple brokers from clients 
-+ Figure out what time variables are doing in client.go
+
+## Pointers and values
++ Encountered a problem unmarshalling json and wanted to explain the solution
+
+```
+var chatmsg *message
+fmt.Printf("Chat message %p\n", &chatmsg)
+```
+
+> Q: What is the value of chatmsg ?
+
+A: The value of chatmsg is nil. Remember that everything in go is pass by value. If you pass chatmsg into json unmarshall you are passing in nil.
+Unmarshall needs an underlying struct to place its data, It needs an address of a location in memory to store the values it creates.
+We declared a new empty pointer to a message. The value of an empty pointer is nil. If we pass this value around it will be nil. IF we wanted this value to be populated by unmarshal, __we would have to pass ITS address__ By Passing the address of the empty pointer, go knows we want to fill that memory address with the concrete value of the pointer
+
+It could also help to think of *Type & Type as two seperate values in go. Type is a concrete value and declaring it, it will be initialized to the 0 value for its type. Declaring *Type will intialize only a pointer (1 word) whose value is nil.
 
 
-
-
-+ transmit json data through the socket
-+ Make Room initialization happen inside a handler function
-+ Add database support for retreival of chats for a given id 
-+ research concurrent design patterns 
-+ research backing up data on client interruption (how can I block for a certain period of time and wait for the client to reconnect and if not store their data )
-+ Encryption of data over socket (concurrency likely here encrypt/decrypt functions. goroutines that store broadcast the decrypted/encrypted data on the Connection Managers (Rooms) boradcast channel)
+### Setting errors on response writier
++ https://stackoverflow.com/questions/40096750/how-to-set-http-status-code-on-http-responsewriter

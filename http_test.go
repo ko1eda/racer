@@ -7,77 +7,86 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/gorilla/websocket"
 	"github.com/tinylttl/racer"
 )
 
+// func TestHandleChat(t *testing.T) {
+// 	cases := []struct {
+// 		name     string
+// 		expected *racer.Broker
+// 	}{
+// 		{
+// 			name:     "Multiple requests to the same chatID endpoint should only create 1 broker",
+// 			expected: racer.NewBroker("2"),
+// 		},
+// 	}
+
+// 	for _, tc := range cases {
+// 		t.Run(tc.name, func(t *testing.T) {
+// 			w := newRecorder(*httptest.NewRecorder())
+// 			r := reqWithSockHeaders(t, "GET", "/racer/chat/23")
+// 			rctx := chi.NewRouteContext()
+// 			rctx.URLParams.Add("chatID", "23")
+// 			r = r.WithContext(context.WithValue(r.Context(), chi.RouteCtxKey, rctx))
+
+// 			manager := racer.NewManager(racer.WithMap(map[string]*racer.Broker{"23": tc.expected}))
+// 			h := racer.ChatHandler(manager)
+
+// 			i := 0
+// 			for i < 15 {
+// 				go h(w, r)
+// 				i++
+// 			}
+
+// 			actual, _ := manager.Exists("23")
+// 			if actual != tc.expected {
+// 				t.Fatalf("\tactual: %+v expected: %+v", actual, tc.expected)
+// 			}
+// 		})
+// 	}
+// }
+
+type message struct {
+	Sent     time.Time `json:"sent"`
+	Body     string    `json:"body"`
+	SenderID int       `json:"senderID"`
+}
+
 func TestHandleChat(t *testing.T) {
 	cases := []struct {
-		name     string
-		expected *racer.Broker
+		name string
+		want *message
 	}{
 		{
-			name:     "Multiple requests to the same chatID endpoint should only create 1 broker",
-			expected: racer.NewBroker("2"),
+			name: "It translates json to a valid message",
+			want: &message{Body: "Test"},
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			// wrap the recorder with a Hijack method so we can use it with
-			// gorillas upgrader
-			w := newRecorder(*httptest.NewRecorder())
-			r := reqWithSockHeaders(t, "GET", "/racer/chat/23")
-			rctx := chi.NewRouteContext()
-			rctx.URLParams.Add("chatID", "23")
-			r = r.WithContext(context.WithValue(r.Context(), chi.RouteCtxKey, rctx))
+			manager := racer.NewManager()
+			d := NewDialer(racer.ChatHandler(manager))
 
-			manager := racer.NewManager(racer.WithMap(map[string]*racer.Broker{"23": tc.expected}))
-			h := racer.ChatHandler(manager)
+			conn, _, err := d.Dial("ws://racer/chat/23", nil)
 
-			i := 0
-			for i < 15 {
-				go h(w, r)
-				i++
+			if err != nil {
+				t.Fatal(err)
 			}
+			conn.WriteJSON(tc.want)
 
-			actual, _ := manager.Exists("23")
-			if actual != tc.expected {
-				t.Fatalf("\tactual: %+v expected: %+v", actual, tc.expected)
+			var got message
+			conn.ReadJSON(&got)
+
+			if got.Body != tc.want.Body {
+				t.Fatalf("got:%s , want: %s", got.Body, tc.want.Body)
 			}
 		})
 	}
-
-	// for _, tc := range cases {
-	// 	t.Run(tc.name, func(t *testing.T) {
-	// 		// wrap the recorder with a Hijack method so we can use it with
-	// 		// gorillas upgrader
-	// 		w := newRecorder(*httptest.NewRecorder())
-	// 		r := reqWithSockHeaders(t, "GET", "/racer/chat/23")
-	// 		rctx := chi.NewRouteContext()
-	// 		rctx.URLParams.Add("chatID", "23")
-	// 		r = r.WithContext(context.WithValue(r.Context(), chi.RouteCtxKey, rctx))
-
-	// 		manager := racer.NewManager()
-	// 		manager.Register("23", tc.expected)
-	// 		h := racer.ChatHandler(manager)
-
-	// 		i := 0
-	// 		for i < 25 {
-	// 			fmt.Printf("goroutine num %d \n", i)
-	// 			go h(w, r)
-	// 			i++
-	// 		}
-
-	// 		actual, _ := manager.Exists("23")
-	// 		if actual != tc.expected {
-	// 			t.Fatalf("\tactual: %+v expected: %+v", actual, tc.expected)
-	// 		}
-
-	// 	})
-	// }
 }
 
 func reqWithSockHeaders(t *testing.T, method, uri string) *http.Request {
@@ -133,6 +142,11 @@ func (r *recorder) runServer(h http.Handler) {
 	if err != nil {
 		return
 	}
+
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("chatID", "23")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
 	h.ServeHTTP(r, req)
 }
 
