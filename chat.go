@@ -1,7 +1,6 @@
 package racer
 
 import (
-	"fmt"
 	"log"
 	"math/rand"
 	"net/http"
@@ -40,7 +39,7 @@ type Chat struct {
 
 // NewClient returns a new Chat client instance
 func NewClient() BrokeredClient {
-	return &Chat{id: rand.Intn(100000), send: make(chan *Message)}
+	return &Chat{id: rand.Intn(100000), send: make(chan *Message, 1)}
 }
 
 // Register a chat client with a broker, all chats on the brokers channel will recieve the same updates
@@ -105,7 +104,6 @@ func (c *Chat) readFromCon() {
 		// v := json.Unmarshal()
 		// fmt.Printf("Chat message %#v\n", chatmsg)
 		if err != nil {
-			fmt.Println(err)
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("error: %v", err)
 			}

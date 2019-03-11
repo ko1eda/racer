@@ -180,7 +180,6 @@ type client struct {
 func (c *client) Register(broadcast chan<- *racer.Message, unregister chan chan<- *racer.Message) chan<- *racer.Message {
 	c.broadcast = broadcast
 	c.unregister = unregister
-	// c.send = make(chan *racer.Message, 1) // buff of 1 allows the channel to recieve directly after it is created, which we need to make the test pass
 	return c.send
 }
 
@@ -205,39 +204,50 @@ func TestStart(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			sub := &client{send: make(chan *racer.Message)}
-			sub2 := &client{send: make(chan *racer.Message)}
+			sub := &client{send: make(chan *racer.Message, 1)}
+			sub2 := &client{send: make(chan *racer.Message, 1)}
+			closed := make(chan struct{})
 
 			go func() {
 				tc.broker.Start()
+				close(closed)
 			}()
 
 			tc.broker.RegisterSubscriber(sub)
 			tc.broker.RegisterSubscriber(sub2)
 
-			// by putting this in a goroutine we ensure that
-			// the statement below will block until sub.send recieves a value
-			// without putting broadcast in a goroutine we were writing to subs send channel before
-			// anything was waiting to recieve, so the select statement inside broker was defaulting and closing the channel
-			// an alternative would be to use buffered channels of 1 so that the channels could recieve before they were ready
-			// here we block indefinitely until we get a signal so both clients have enough time to fully intialize their send channels
+			// A buffered channel is necessary based on the way we have the select statement in
+			// broker set up, without a buffered channel any blocking for any reason on a send channel will
+			// cause a close on the clients channel. A buffered channel gives us a threshold to say
+			// we want to accept x amount of requests and if we block, then we know there's a problem
+			// NOTE: to check that both of these recieved the same message without using a buffer
+			// we would need to put one in its own goroutine, because the first receive would block the second
+			// channel from recieveing (they both need to be able to recieve from the broker at the same time when a message is broadcast)
 			go func() { sub.broadcast <- &racer.Message{Payload: tc.want} }()
 
 			if got := <-sub.send; string(got.Payload.([]byte)) != string(tc.want) {
 				t.Fatalf("got: %s, want: %s", string(got.Payload.([]byte)), tc.want)
 			}
 
+			// check that sub2 got the same
+			if got := <-sub2.send; string(got.Payload.([]byte)) != string(tc.want) {
+				t.Fatalf("got: %s, want: %s", string(got.Payload.([]byte)), tc.want)
+			}
+
 			// if we get something other than a close signal on the chan we have a problem
 			sub.unregister <- sub.send
+			sub2.unregister <- sub2.send
 			if got, ok := <-sub.send; ok {
 				t.Fatalf("got: %s, want: %s", string(got.Payload.([]byte)), string(tc.want))
 			}
+
+			// The broker should break out its start() process and close then chan when all clients unregister
+			// if not we have a problem
+			select {
+			case <-closed:
+			default:
+				t.Fatalf("Broker never stopped running")
+			}
 		})
 	}
-	// we want to register a new client
-
-	// we want to unregister a client
-
-	// we want to
-
 }

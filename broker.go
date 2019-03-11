@@ -23,10 +23,6 @@ type Message struct {
 	Payload  interface{} // any clients using the same broker should be expecting the same type of message
 }
 
-// func NewMessage(Payloadinterface{}) *Message {
-// 	return &Message{time.Now(), b}
-// }
-
 // NewBroker creates a new Broker
 func NewBroker(id string) *Broker {
 	return &Broker{
@@ -158,68 +154,3 @@ func (bm *BrokerManager) Exists(key string) (*Broker, bool) {
 
 	return nil, false
 }
-
-// Result contains the result of a lookup from the broker manager
-// It will contain a Broker and a boolean field Found which will be true
-// if the broker was found and false if it was not.
-// If the broker was not found the manager creates one and stores it under the lookup key.
-// type Result struct {
-// 	*Broker
-// 	Found bool
-// }
-// // Lookup exposes an unbuffered channel on the broker manager
-// // it takes a string key and will check the managers lookup table
-// // to determine if a broker exists for the given key
-// func (bm *BrokerManager) Lookup() chan<- string {
-// 	go bm.runLookup()
-// 	return bm.lookup
-// }
-
-// // Result returns a channel that containts the results from each lookup
-// func (bm *BrokerManager) Result() <-chan Result {
-// 	return bm.result
-// }
-
-// func (bm *BrokerManager) runLookup() {
-// 	for {
-// 		select {
-// 		case key := <-bm.lookup:
-// 			broker, exists := bm.brokerm[key]
-// 			if !exists {
-// 				broker = key
-// 				bm.brokerm[key] = broker
-
-// 				bm.result <- Result{broker, false}
-// 				break
-// 			}
-
-// 			bm.result <- Result{broker, true}
-// 		}
-// 	}
-// }
-// Lookup exposes an unbuffered channel on the broker manager
-// it takes a string key and will check the managers lookup table
-// to determine if a broker exists for the given key
-
-// // Result returns a channel that containts the results from each lookup
-// func (bm *BrokerManager) Result() <-chan Result {
-// 	return bm.result
-// }
-
-// func (bm *BrokerManager) runLookup() {
-// 	for {
-// 		select {
-// 		case key := <-bm.lookup:
-// 			broker, exists := bm.brokerm[key]
-// 			if !exists {
-// 				broker = key
-// 				bm.brokerm[key] = broker
-
-// 				bm.result <- Result{broker, false}
-// 				break
-// 			}
-
-// 			bm.result <- Result{broker, true}
-// 		}
-// 	}
-// }

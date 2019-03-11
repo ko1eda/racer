@@ -14,49 +14,13 @@ import (
 	"github.com/tinylttl/racer"
 )
 
-// func TestHandleChat(t *testing.T) {
-// 	cases := []struct {
-// 		name     string
-// 		expected *racer.Broker
-// 	}{
-// 		{
-// 			name:     "Multiple requests to the same chatID endpoint should only create 1 broker",
-// 			expected: racer.NewBroker("2"),
-// 		},
-// 	}
-
-// 	for _, tc := range cases {
-// 		t.Run(tc.name, func(t *testing.T) {
-// 			w := newRecorder(*httptest.NewRecorder())
-// 			r := reqWithSockHeaders(t, "GET", "/racer/chat/23")
-// 			rctx := chi.NewRouteContext()
-// 			rctx.URLParams.Add("chatID", "23")
-// 			r = r.WithContext(context.WithValue(r.Context(), chi.RouteCtxKey, rctx))
-
-// 			manager := racer.NewManager(racer.WithMap(map[string]*racer.Broker{"23": tc.expected}))
-// 			h := racer.ChatHandler(manager)
-
-// 			i := 0
-// 			for i < 15 {
-// 				go h(w, r)
-// 				i++
-// 			}
-
-// 			actual, _ := manager.Exists("23")
-// 			if actual != tc.expected {
-// 				t.Fatalf("\tactual: %+v expected: %+v", actual, tc.expected)
-// 			}
-// 		})
-// 	}
-// }
-
 type message struct {
 	Sent     time.Time `json:"sent"`
 	Body     string    `json:"body"`
 	SenderID int       `json:"senderID"`
 }
 
-func TestHandleChat(t *testing.T) {
+func TestHandleChat_SocketConn(t *testing.T) {
 	cases := []struct {
 		name string
 		want *message
@@ -89,16 +53,7 @@ func TestHandleChat(t *testing.T) {
 	}
 }
 
-func reqWithSockHeaders(t *testing.T, method, uri string) *http.Request {
-	r := httptest.NewRequest(method, uri, nil)
-	r.Header.Add("Connection", "Upgrade")
-	r.Header.Add("Upgrade", "websocket")
-	r.Header.Add("Sec-Websocket-Version", "13")
-	r.Header.Add("Sec-WebSocket-Key", "13")
-
-	return r
-}
-
+// borrowed and modified from https://github.com/posener/wstest
 func newRecorder(r httptest.ResponseRecorder) *recorder {
 	_, server := net.Pipe()
 
