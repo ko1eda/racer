@@ -127,6 +127,13 @@ func (bm *BrokerManager) Lookup(key string, cb func(found bool, b *Broker)) {
 	cb(true, broker)
 }
 
+// Size returns the size of the brokers underlying map
+func (bm *BrokerManager) Size() int {
+	bm.mu.Lock()
+	defer bm.mu.Unlock()
+	return len(bm.brokerm)
+}
+
 // Remove removes a broker from the manager deleting the key from its map
 // It returns true if the key was found and deleted false if it was not found.
 func (bm *BrokerManager) Remove(key string) bool {

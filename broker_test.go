@@ -3,6 +3,7 @@ package racer_test
 import (
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/tinylttl/racer"
 )
@@ -237,9 +238,13 @@ func TestStart(t *testing.T) {
 			// if we get something other than a close signal on the chan we have a problem
 			sub.unregister <- sub.send
 			sub2.unregister <- sub2.send
+
 			if got, ok := <-sub.send; ok {
 				t.Fatalf("got: %s, want: %s", string(got.Payload.([]byte)), string(tc.want))
 			}
+
+			// give the broker some time to unregister both channels
+			time.Sleep(10 * time.Millisecond)
 
 			// The broker should break out its start() process and close then chan when all clients unregister
 			// if not we have a problem

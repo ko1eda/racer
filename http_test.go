@@ -20,7 +20,55 @@ type message struct {
 	SenderID int       `json:"senderID"`
 }
 
-func TestHandleChat_SocketConn(t *testing.T) {
+func TestChatHandler(t *testing.T) {
+	t.Run("It creates a new broker for each new chatID", func(t *testing.T) {
+		manager := racer.NewManager()
+
+		d := NewDialer(racer.ChatHandler(manager), [][]string{{"chatID", "23"}})
+		d2 := NewDialer(racer.ChatHandler(manager), [][]string{{"chatID", "24"}})
+		_, _, _ = d.Dial("ws://racer/chat/23", nil)
+		_, _, _ = d2.Dial("ws://racer/chat/24", nil)
+
+		want := 2
+		if got := manager.Size(); got != want {
+			t.Fatalf("got %d want %d", got, want)
+		}
+	})
+
+	t.Run("It removes brokers when they have no clients", func(t *testing.T) {
+		manager := racer.NewManager()
+		d := NewDialer(racer.ChatHandler(manager), [][]string{{"chatID", "23"}})
+		d2 := NewDialer(racer.ChatHandler(manager), [][]string{{"chatID", "24"}})
+
+		done := make(chan struct{})
+
+		go func() {
+			conn1, _, _ := d.Dial("ws://racer/chat/23", nil)
+			conn1.Close()
+			done <- struct{}{}
+		}()
+
+		go func() {
+			conn2, _, _ := d2.Dial("ws://racer/chat/24", nil)
+			conn2.Close()
+			time.Sleep(200 * time.Millisecond)
+			done <- struct{}{}
+		}()
+
+		var i = 2
+		for i > 0 {
+			<-done
+			i--
+		}
+
+		var want int
+		if got := manager.Size(); got != want {
+			t.Fatalf("got %d want %d", got, want)
+		}
+	})
+}
+
+func TestChatHandler_SocketConn(t *testing.T) {
 	cases := []struct {
 		name string
 		want *message
@@ -34,7 +82,7 @@ func TestHandleChat_SocketConn(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			manager := racer.NewManager()
-			d := NewDialer(racer.ChatHandler(manager))
+			d := NewDialer(racer.ChatHandler(manager), [][]string{{"chatID", "23"}})
 
 			conn, _, err := d.Dial("ws://racer/chat/23", nil)
 
@@ -70,17 +118,18 @@ type recorder struct {
 func (r *recorder) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	// return to the recorder the recorder, which is the recorder side of the connection
 	rw := bufio.NewReadWriter(bufio.NewReader(r.server), bufio.NewWriter(r.server))
+
 	return r.server, rw, nil
 }
 
-func NewDialer(h http.Handler) *websocket.Dialer {
+func NewDialer(h http.Handler, ctx ...[][]string) *websocket.Dialer {
 	client, server := net.Pipe()
 	conn := &recorder{server: server}
 
 	// run the runServer in a goroutine, so when the Dial send the request to
 	// the recorder on the connection, it will be parsed as an HTTPRequest and
 	// sent to the Handler function.
-	go conn.runServer(h)
+	go conn.runServer(h, ctx...)
 
 	// use the websocket.NewDialer.Dial with the fake net.recorder to communicate with the recorder
 	// the recorder gets the client which is the client side of the connection
@@ -90,19 +139,29 @@ func NewDialer(h http.Handler) *websocket.Dialer {
 // runServer reads the request sent on the connection to the recorder
 // from the websocket.NewDialer.Dial function, and pass it to the recorder.
 // once this is done, the communication is done on the wsConn
-func (r *recorder) runServer(h http.Handler) {
-	// read from the recorder connection the request sent by the recorder.Dial,
-	// and use the handler to serve this request.
+func (r *recorder) runServer(h http.Handler, ctx ...[][]string) {
 	req, err := http.ReadRequest(bufio.NewReader(r.server))
+	// fmt.Println("Called")
+
 	if err != nil {
 		return
 	}
 
-	rctx := chi.NewRouteContext()
-	rctx.URLParams.Add("chatID", "23")
-	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+	addRouteCtx(&req, ctx[0])
 
 	h.ServeHTTP(r, req)
+}
+
+// key value tuples [[key val]]
+func addRouteCtx(req **http.Request, keyval [][]string) {
+	rctx := chi.NewRouteContext()
+	for _, tuple := range keyval {
+		for j := 0; j < 2; j = j + 2 {
+			rctx.URLParams.Add(tuple[j], tuple[j+1])
+		}
+	}
+
+	*req = (*req).WithContext(context.WithValue((*req).Context(), chi.RouteCtxKey, rctx))
 }
 
 // WriteHeader write HTTP header to the client and closes the connection

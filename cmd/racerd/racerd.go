@@ -14,8 +14,8 @@ func main() {
 
 	brokerm := racer.NewManager()
 
-	r.Get("/racer/chat", serveHome)
-	r.Get("/racer/cat", serveAbout)
+	// r.Get("/racer/chat", serveHome)
+	// r.Get("/racer/cat", serveAbout)
 	r.Get("/racer/chat/{chatID}", racer.ChatHandler(brokerm))
 
 	// blocks our application
