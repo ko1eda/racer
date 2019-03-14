@@ -1,15 +1,18 @@
-<template>
+<template functional>
   <div class="tw-mb-2 tw-py-2 tw-px-4 tw-bg-blue tw-text-white tw-text-sm tw-rounded-full">
-    {{ body }}
+    <span class="tw-text-sm tw-mr-1 tw-font-sans">
+      {{ props.data.sent }} :
+    </span>
+    {{ props.data.body }}
   </div>
 </template>
 
 <script>
 export default {
   props : {
-    body : {
-      type: String,
-      default : ""
+    data : {
+      type: Object,
+      required: true
     }
   }
 }
