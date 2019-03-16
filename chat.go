@@ -67,6 +67,9 @@ func (c *Chat) Run(w http.ResponseWriter, r *http.Request) {
 
 	c.con = con
 
+	// start backup service
+	// send signal after client disconnects to backup all data
+	// and flush it
 	go c.readFromCon()
 	go c.writeToCon()
 }
@@ -74,9 +77,10 @@ func (c *Chat) Run(w http.ResponseWriter, r *http.Request) {
 // A Message represents chat data sent between users in the broker
 // the broker stores its message body as an empty interface
 type message struct {
-	Sent     time.Time `json:"sent"`
-	Body     string    `json:"body"`
-	SenderID int       `json:"senderID"`
+	Timestamp int64  `json:"timestamp"`
+	Sent      string `json:"sent"`
+	Body      string `json:"body"`
+	SenderID  int    `json:"senderID"`
 }
 
 // ReadFromCon the client reads from its connection and sends the message to any other sibling clients through its brokers broadcast channel
@@ -100,7 +104,7 @@ func (c *Chat) readFromCon() {
 	// we could also declare message as a concrete type (without *) and pass its &refrence, doing so intializes the 0 val for chatmsg
 	// and we pass it the address of that.
 	brokermsg := Message{Sent: time.Now()}
-	chatmsg := message{Sent: time.Now()}
+	chatmsg := message{Sent: time.Now().Format("01/02/06 15:04 pm"), Timestamp: time.Now().UTC().Unix()}
 	for {
 		err := c.con.ReadJSON(&chatmsg)
 
@@ -139,7 +143,6 @@ func (c *Chat) writeToCon() {
 			// and this peer will send a close message to the con, meaining that it (the clients) connection will be closed
 			if !ok {
 				c.con.WriteMessage(websocket.CloseMessage, []byte{})
-				log.Println("The clients send channel was closed ")
 				return
 			}
 
@@ -151,13 +154,10 @@ func (c *Chat) writeToCon() {
 				return
 			}
 
-			// fmt.Println(m.Body)
-
 			err := c.con.WriteJSON(m)
-
 			if err != nil {
 				c.con.WriteMessage(websocket.CloseMessage, []byte{})
-				log.Println("Error writing json to socket. ", err)
+				log.Println("Error writing json to conn. ", err)
 				return
 			}
 

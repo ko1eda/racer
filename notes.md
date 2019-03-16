@@ -6,6 +6,14 @@
     + Two types of managers private or public, in public any client can join.
     + in private only clients that have been whitelisted can join
 
+
+
+### Formating time
++ Good info about how to translate to different local timezones in go https://stackoverflow.com/questions/25318154/convert-utc-to-local-time-go
++ https://unix4lyfe.org/time/?v=1
++ https://stackoverflow.com/questions/9539108/obtaining-a-unix-timestamp-in-go-language-current-time-in-seconds-since-epoch
+
+
 ## Errors & solutions
 ### Htttp & Server
 + There are a number of issues to consider when using golang as an http server
@@ -31,7 +39,7 @@
 var chatmsg *message
 fmt.Printf("Chat message %p\n", &chatmsg)
 ```
-
+    
 > Q: What is the value of chatmsg ?
 
 A: The value of chatmsg is nil. Remember that everything in go is pass by value. If you pass chatmsg into json unmarshall you are passing in nil.
