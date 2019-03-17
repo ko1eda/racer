@@ -1,7 +1,7 @@
 ### Design
 + Add database support for retreival of chats for a given id 
 + research backing up data on client interruption (how can I block for a certain period of time and wait for the client to reconnect and if not store their data )
-+ Encryption of data over socket (concurrency likely here encrypt/decrypt functions. goroutines that store broadcast the decrypted/encrypted data on the Connection Managers (Rooms) boradcast channel)
++ Encryption of data over socket (concurrency likely here encrypt/decrypt functions.NewBrokers (Rooms) boradcast channel)
 + Seperate rooms types for group and private chats
     + Two types of managers private or public, in public any client can join.
     + in private only clients that have been whitelisted can join
