@@ -12,17 +12,12 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/gorilla/websocket"
 	"github.com/tinylttl/racer"
+	"github.com/tinylttl/racer/broker"
 )
-
-type message struct {
-	Sent     time.Time `json:"sent"`
-	Body     string    `json:"body"`
-	SenderID int       `json:"senderID"`
-}
 
 func TestChatHandler(t *testing.T) {
 	t.Run("It creates a new broker for each new chatID", func(t *testing.T) {
-		manager := racer.NewManager()
+		manager := broker.NewBroker()
 
 		d := NewDialer(racer.ChatHandler(manager), [][]string{{"chatID", "23"}})
 		d2 := NewDialer(racer.ChatHandler(manager), [][]string{{"chatID", "24"}})
@@ -36,7 +31,7 @@ func TestChatHandler(t *testing.T) {
 	})
 
 	t.Run("It removes brokers when they have no clients", func(t *testing.T) {
-		manager := racer.NewManager()
+		manager := broker.NewBroker()
 		d := NewDialer(racer.ChatHandler(manager), [][]string{{"chatID", "23"}})
 		d2 := NewDialer(racer.ChatHandler(manager), [][]string{{"chatID", "24"}})
 
@@ -71,17 +66,17 @@ func TestChatHandler(t *testing.T) {
 func TestChatHandler_SocketConn(t *testing.T) {
 	cases := []struct {
 		name string
-		want *message
+		want *racer.Message
 	}{
 		{
 			name: "It translates json to a valid message",
-			want: &message{Body: "Test"},
+			want: &racer.Message{Body: "Test"},
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			manager := racer.NewManager()
+			manager := broker.NewBroker()
 			d := NewDialer(racer.ChatHandler(manager), [][]string{{"chatID", "23"}})
 
 			conn, _, err := d.Dial("ws://racer/chat/23", nil)
@@ -91,7 +86,7 @@ func TestChatHandler_SocketConn(t *testing.T) {
 			}
 			conn.WriteJSON(tc.want)
 
-			var got message
+			var got racer.Message
 			conn.ReadJSON(&got)
 
 			if got.Body != tc.want.Body {

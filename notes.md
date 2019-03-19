@@ -32,6 +32,11 @@
 + Cannont use the same endpoint to connect via sock and http https://stackoverflow.com/questions/48006498/is-this-possible-to-server-websocket-handler-and-normal-servlet-over-same-contex
 
 
+### Crypto & rand & unique identifiers in go
++ http://blog.sgmansfield.com/2016/01/the-hidden-dangers-of-default-rand/
++ https://stackoverflow.com/questions/2662591/go-example-about-crypto-rand
+
+
 ### Pointers and values
 + Encountered a problem unmarshalling json and wanted to explain the solution
 

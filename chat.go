@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/tinylttl/racer/broker"
 )
 
 const (
@@ -30,23 +31,21 @@ func init() {
 // A Chat represents a single client connection to our chat service.
 // A chat is a brokered client, we expect that it will be registered with a broker
 type Chat struct {
-	con        *websocket.Conn // a con is used to read from and write to which intern updates all clients in the broker
-	broadcast  chan<- *Message
-	unregister chan chan<- *Message
-	send       chan *Message // each client has their own unique send channel for sending data from the broadcast channel into the con
-	id         int
+	con *websocket.Conn // a con is used to read from and write to which intern updates all clients in the broker
+	Broadcaster
+	send chan *broker.Message // each client has their own unique send channel for sending data from the broadcast channel into the con
+	id   int
 }
 
 // NewClient returns a new Chat client instance
-func NewClient() BrokeredClient {
-	return &Chat{id: rand.Intn(100000), send: make(chan *Message, 1)}
-}
+func NewClient(b Broadcaster) *Chat {
+	c := &Chat{id: rand.Intn(100000), send: make(chan *broker.Message, 1), Broadcaster: b}
 
-// Register a chat client with a broker, all chats on the brokers channel will recieve the same updates
-func (c *Chat) Register(broadcast chan<- *Message, unregister chan chan<- *Message) chan<- *Message {
-	c.broadcast = broadcast
-	c.unregister = unregister
-	return c.send
+	// doing this here may be an issue because
+	// the client must always be running to register otherwise it will block forever
+	c.Register() <- c.send
+
+	return c
 }
 
 // Run starts a deamonized chat instance
@@ -76,7 +75,7 @@ func (c *Chat) Run(w http.ResponseWriter, r *http.Request) {
 
 // A Message represents chat data sent between users in the broker
 // the broker stores its message body as an empty interface
-type message struct {
+type Message struct {
 	Timestamp int64  `json:"timestamp"`
 	Sent      string `json:"sent"`
 	Body      string `json:"body"`
@@ -89,7 +88,7 @@ func (c *Chat) readFromCon() {
 	// it will only terminate if the client disconnects or there is an error
 	defer func() {
 		c.con.Close()
-		c.unregister <- c.send
+		c.Unregister() <- c.send
 	}()
 
 	// The maximum bytes our read routines can read in from the con is 512 bytes so 512 1 byte asci characters
@@ -103,8 +102,8 @@ func (c *Chat) readFromCon() {
 	// if we just pass chatmsg it would be passing nil to the unmarshall func.
 	// we could also declare message as a concrete type (without *) and pass its &refrence, doing so intializes the 0 val for chatmsg
 	// and we pass it the address of that.
-	brokermsg := Message{Sent: time.Now()}
-	chatmsg := message{Sent: time.Now().Format("01/02/06 15:04 pm"), Timestamp: time.Now().UTC().Unix()}
+	brokermsg := broker.Message{Sent: time.Now()}
+	chatmsg := Message{Sent: time.Now().Format("01/02/06 15:04 pm"), Timestamp: time.Now().UTC().Unix()}
 	for {
 		err := c.con.ReadJSON(&chatmsg)
 
@@ -118,7 +117,7 @@ func (c *Chat) readFromCon() {
 		}
 		brokermsg.Payload = &chatmsg
 		// fmt.Printf("Chat message %#v\n", brokermsg)
-		c.broadcast <- &brokermsg
+		c.Broadcast() <- &brokermsg
 	}
 }
 
@@ -146,7 +145,7 @@ func (c *Chat) writeToCon() {
 				return
 			}
 
-			m, ok := brokermsg.Payload.(*message)
+			m, ok := brokermsg.Payload.(*Message)
 
 			if !ok {
 				c.con.WriteMessage(websocket.CloseMessage, []byte{})

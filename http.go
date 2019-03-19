@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi"
+	"github.com/tinylttl/racer/broker"
 )
 
 // ChatHandler handles all GET requests to ../chat/{chatID}
@@ -11,7 +12,7 @@ import (
 // The goal is that we only have one broker running for a given chat endpoint (chatID).
 // The brokers job is to manage each client connection that is active at that endpoint.
 // If a brokers clients all unregister, it will terminate and remove itself from its manager.
-func ChatHandler(bm *BrokerManager) http.HandlerFunc {
+func ChatHandler(bm *broker.Broker) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		chatID := chi.URLParam(r, "chatID")
 
@@ -22,16 +23,15 @@ func ChatHandler(bm *BrokerManager) http.HandlerFunc {
 
 		// fmt.Println("Chat Id: ", chatID)
 
-		bm.Lookup(chatID, func(found bool, b *Broker) {
+		bm.Lookup(chatID, func(found bool, t *broker.Topic) {
 			if !found {
 				go func() {
 					// fmt.Println("NOT FOUND CALLED IN HANDLER")
-					b.Start() // blocking
+					t.Start() // blocking
 					bm.Remove(chatID)
 				}()
 			}
-			c := NewClient()
-			b.RegisterSubscriber(c)
+			c := NewClient(t)
 			c.Run(w, r)
 		})
 	})

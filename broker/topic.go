@@ -3,13 +3,14 @@ package broker
 import "time"
 
 // A Topic represents a connection hub, anything registered with a topic will recieve updates
-// every time a message is pushed to its broadcast channel
+// every time a message is pushed to its broadcast channel. A topic must be started in order for it
+// to register subscribers and broadcast messages.
 type Topic struct {
 	subscribers map[chan<- *Message]bool
 	register    chan chan<- *Message
-	broadcast   chan *Message        // exported
-	unregister  chan chan<- *Message //exported
-	id          string
+	broadcast   chan *Message
+	unregister  chan chan<- *Message
+	ID          string
 }
 
 // Message is sent through the brokers broadcast channel and relayed to any listeners through
@@ -21,9 +22,9 @@ type Message struct {
 }
 
 // NewTopic creates a new Topic
-func NewTopic(id string) *Topic {
+func NewTopic(ID string) *Topic {
 	return &Topic{
-		id:          id,
+		ID:          ID,
 		subscribers: make(map[chan<- *Message]bool),
 		broadcast:   make(chan *Message),
 		register:    make(chan chan<- *Message),
@@ -31,20 +32,16 @@ func NewTopic(id string) *Topic {
 	}
 }
 
-// Subscriber represents a client who is elegable to recieve broadcasts from the topic
-// A client must be able to register with the topic and provide a buffered channel which the topic
-// can return information on.
-type subscriber interface {
-	Register(broadcast chan<- *Message, unregister chan chan<- *Message) (send chan<- *Message)
-}
+// Register registers a new send channel with the topic. Clients will recieve on this channel
+// whenever there is a message sent to the brokers broadcast channel.
+func (t *Topic) Register() chan chan<- *Message { return t.register }
 
-// type subscriber interface {
-// 	Register(t *Topic) (send chan<- *Message)
-// }
+// Broadcast exposes a topics internal broadcast channel.
+// Use this to send messages to other clients that subscribe to this topic.
+func (t *Topic) Broadcast() chan<- *Message { return t.broadcast }
 
-// RegisterSubscriber registers a new send channel with the topic. Clients will recieve on this channel
-// whenever there is a message sent to the brokers broadcast channel. It also provides the client with an unregister channel.
-func (t *Topic) RegisterSubscriber(s subscriber) { t.register <- s.Register(t.broadcast, t.unregister) }
+// Unregister exposes a topics internal channel for unregistering clients.
+func (t *Topic) Unregister() chan chan<- *Message { return t.unregister }
 
 // Start starts the Topic in a blocking state, it will listen on all its channels
 // and select an action based on the currently active channel.

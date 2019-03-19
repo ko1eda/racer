@@ -30,8 +30,35 @@ func WithMap(m map[string]*Topic) func(*Broker) {
 	}
 }
 
-// calls newTopic()
-// func (b *Broker) NewTopic()
+// NewTopic returns a newly initialized topic with a unique identifier. It also starts the topic. This is a convienience method for NewTopic()
+func (b *Broker) NewTopic() *Topic {
+	g, _ := NewGenerator()
+	id, _ := g.NewID()
+	t := NewTopic(id)
+
+	go func() {
+		t.Start()
+	}()
+
+	b.Add(id, t)
+
+	return t
+}
+
+// Add adds a new topic to the brokers map of active topics.
+// Returns true if it could be added, false if there was already a topic with that key.
+func (b *Broker) Add(key string, t *Topic) bool {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	_, exists := b.topics[key]
+	if !exists {
+		b.topics[key] = t
+		return true
+	}
+
+	return false
+}
 
 // Lookup searches its map for a running topic with the given id.
 // The callback will be called regardless of whether or not a topic is found.

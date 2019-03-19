@@ -6,13 +6,14 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/tinylttl/racer"
+	"github.com/tinylttl/racer/broker"
 )
 
 func main() {
 	r := chi.NewRouter()
 	// r.Get("/racer/chat/{chadID:[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}}")
 
-	brokerm := racer.NewManager()
+	brokerm := broker.NewBroker()
 
 	// r.Get("/racer/chat", serveHome)
 	// r.Get("/racer/cat", serveAbout)

@@ -8,6 +8,7 @@ require (
 	github.com/golang/protobuf v1.3.1 // indirect
 	github.com/gorilla/websocket v1.4.0
 	github.com/pkg/errors v0.8.1 // indirect
+	github.com/speps/go-hashids v2.0.0+incompatible
 	github.com/stretchr/testify v1.3.0 // indirect
 	golang.org/x/net v0.0.0-20190313220215-9f648a60d977 // indirect
 )

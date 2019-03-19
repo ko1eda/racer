@@ -173,15 +173,7 @@ func TestRemoveConcurrent(t *testing.T) {
 }
 
 type client struct {
-	broadcast  chan<- *broker.Message
-	unregister chan chan<- *broker.Message
-	send       chan *broker.Message
-}
-
-func (c *client) Register(broadcast chan<- *broker.Message, unregister chan chan<- *broker.Message) chan<- *broker.Message {
-	c.broadcast = broadcast
-	c.unregister = unregister
-	return c.send
+	send chan *broker.Message
 }
 
 func TestStart(t *testing.T) {
@@ -214,8 +206,8 @@ func TestStart(t *testing.T) {
 				close(closed)
 			}()
 
-			tc.topic.RegisterSubscriber(sub)
-			tc.topic.RegisterSubscriber(sub2)
+			tc.topic.Register() <- sub.send
+			tc.topic.Register() <- sub2.send
 
 			// A buffered channel is necessary based on the way we have the select statement in
 			// topic set up, without a buffered channel any blocking for any reason on a send channel will
@@ -224,7 +216,7 @@ func TestStart(t *testing.T) {
 			// NOTE: to check that both of these recieved the same message without using a buffer
 			// we would need to put one in its own goroutine, because the first receive would block the second
 			// channel from recieveing (they both need to be able to recieve from the topic at the same time when a message is broadcast)
-			go func() { sub.broadcast <- &broker.Message{Payload: tc.want} }()
+			go func() { tc.topic.Broadcast() <- &broker.Message{Payload: tc.want} }()
 
 			if got := <-sub.send; string(got.Payload.([]byte)) != string(tc.want) {
 				t.Fatalf("got: %s, want: %s", string(got.Payload.([]byte)), tc.want)
@@ -236,8 +228,8 @@ func TestStart(t *testing.T) {
 			}
 
 			// if we get something other than a close signal on the chan we have a problem
-			sub.unregister <- sub.send
-			sub2.unregister <- sub2.send
+			tc.topic.Unregister() <- sub.send
+			tc.topic.Unregister() <- sub2.send
 
 			if got, ok := <-sub.send; ok {
 				t.Fatalf("got: %s, want: %s", string(got.Payload.([]byte)), string(tc.want))
