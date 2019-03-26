@@ -21,6 +21,9 @@ const (
 
 	// Maximum message size allowed from peer.
 	maxMessageSize = 512
+
+	// time format for a racer.Message
+	timeFmt = "01/02/06 3:04 pm"
 )
 
 // Check that the Connector implementation can be assigned to a racer.Connector interface
@@ -77,7 +80,7 @@ func (c *Connector) Read() <-chan *racer.Message {
 		// if we just pass chatmsg it would be passing nil to the unmarshall func.
 		// we could also declare message as a concrete type (without *) and pass its &refrence, doing so intializes the 0 val for chatmsg
 		// and we pass it the address of that.
-		chatmsg := racer.Message{Sent: time.Now().Format("01/02/06 15:04 pm"), Timestamp: time.Now().UTC().Unix()}
+		chatmsg := racer.Message{Sent: time.Now().Format(timeFmt), Timestamp: time.Now().UTC().Unix()}
 		for {
 			err := c.conn.ReadJSON(&chatmsg)
 			// v := json.Unmarshal()
