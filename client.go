@@ -39,19 +39,24 @@ type Broadcaster interface {
 	Broadcast() chan<- *broker.Message
 }
 
-// NewClient returns a new Chat client instance
+// NewClient returns a new Chat client instance that is registered with a broadcaster
 func NewClient(b Broadcaster, conn Connector) *Client {
-	return &Client{ID: fmt.Sprintf("%d", rand.Intn(100000)), Receive: make(chan *broker.Message, 1), Broadcaster: b, Conn: conn}
+	c := &Client{ID: fmt.Sprintf("%d", rand.Intn(100000)), Receive: make(chan *broker.Message, 1), Broadcaster: b, Conn: conn}
+
+	c.Broadcaster.Register() <- c.Receive
+
+	return c
 }
 
-// Run starts a deamonized chat instance
+// Run starts two goroutines, one to read incoming messages from the Clients connection
+// the other is to read messages recieved from the clients broadcaster, and send them through
+// the clients connection
 func (c *Client) Run() {
 	go func() {
 		for msg := range c.Conn.Read() {
 			c.Broadcaster.Broadcast() <- &broker.Message{Payload: msg}
 		}
-		// shutdown the client because the connection was closed
-		c.Broadcaster.Unregister() <- c.Receive
+		c.Broadcaster.Unregister() <- c.Receive // shutdown the client because the connection was closed
 	}()
 
 	go func() {

@@ -1,6 +1,8 @@
 package broker
 
-import "time"
+import (
+	"time"
+)
 
 // A Topic represents a connection hub, anything registered with a topic will recieve updates
 // every time a message is pushed to its broadcast channel. A topic must be started in order for it
