@@ -53,9 +53,6 @@ loop:
 	for {
 		select {
 		case client := <-t.register:
-			// might need to make this concurrent safe test to make sure,
-			// register is non-blocking since its on select so it is possible that multiple
-			// reads or reads and writes may occur simultaneously. TEST THIS
 			t.subscribers[client] = true
 
 		case unregistered := <-t.unregister:

@@ -1,4 +1,4 @@
-package racer_test
+package http
 
 import (
 	"bufio"
@@ -15,12 +15,13 @@ import (
 	"github.com/tinylttl/racer/broker"
 )
 
-func TestChatHandler(t *testing.T) {
+func TestHandleGetTopic(t *testing.T) {
 	t.Run("It creates a new broker for each new chatID", func(t *testing.T) {
 		manager := broker.NewBroker()
+		handler := NewHandler()
 
-		d := NewDialer(racer.ChatHandler(manager), [][]string{{"chatID", "23"}})
-		d2 := NewDialer(racer.ChatHandler(manager), [][]string{{"chatID", "24"}})
+		d := NewDialer(handler.handleGetTopic(manager), [][]string{{"chatID", "23"}})
+		d2 := NewDialer(handler.handleGetTopic(manager), [][]string{{"chatID", "24"}})
 		_, _, _ = d.Dial("ws://racer/chat/23", nil)
 		_, _, _ = d2.Dial("ws://racer/chat/24", nil)
 
@@ -32,8 +33,9 @@ func TestChatHandler(t *testing.T) {
 
 	t.Run("It removes brokers when they have no clients", func(t *testing.T) {
 		manager := broker.NewBroker()
-		d := NewDialer(racer.ChatHandler(manager), [][]string{{"chatID", "23"}})
-		d2 := NewDialer(racer.ChatHandler(manager), [][]string{{"chatID", "24"}})
+		handler := NewHandler()
+		d := NewDialer(handler.handleGetTopic(manager), [][]string{{"chatID", "23"}})
+		d2 := NewDialer(handler.handleGetTopic(manager), [][]string{{"chatID", "24"}})
 
 		done := make(chan struct{})
 
@@ -63,7 +65,7 @@ func TestChatHandler(t *testing.T) {
 	})
 }
 
-func TestChatHandler_SocketConn(t *testing.T) {
+func TestHandleGetTopic_SocketConn(t *testing.T) {
 	cases := []struct {
 		name string
 		want *racer.Message
@@ -77,7 +79,8 @@ func TestChatHandler_SocketConn(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			manager := broker.NewBroker()
-			d := NewDialer(racer.ChatHandler(manager), [][]string{{"chatID", "23"}})
+			handler := NewHandler()
+			d := NewDialer(handler.handleGetTopic(manager), [][]string{{"chatID", "23"}})
 
 			conn, _, err := d.Dial("ws://racer/chat/23", nil)
 

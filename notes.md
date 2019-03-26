@@ -14,6 +14,16 @@
 + https://stackoverflow.com/questions/9539108/obtaining-a-unix-timestamp-in-go-language-current-time-in-seconds-since-epoch
 
 
+## Handling http requests with handlers
+### Testing
++ example hashicorp
+    + https://github.com/hashicorp/vault/blob/master/http/handler_test.go
+    + https://github.com/hashicorp/vault/blob/master/http/testing.go
+    + https://github.com/hashicorp/go-cleanhttp
++ example benjonshon
+    + https://github.com/benbjohnson/pilosa/blob/master/handler.go
+    + https://github.com/benbjohnson/pilosa/blob/master/handler_test.go
+
 ## Errors & solutions
 ### Htttp & Server
 + There are a number of issues to consider when using golang as an http server
