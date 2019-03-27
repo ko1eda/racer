@@ -1,7 +1,6 @@
 @tailwind preflight;
 // Load in any fonts here
 @import url('https://fonts.googleapis.com/css?family=Raleway:400,400i,500,600,700');
-// @import url('https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700');
 
 html {
   color: config('colors.grey-darkest');
@@ -11,58 +10,19 @@ html {
   font-weight: 400;
 }
 
+body {
+  margin: 0;
+  box-sizing: border-box;
+  height: 100vh;
+}
+
 a {
   text-decoration: none;
   outline: none;
 }
 
-.button:focus {
-  border: 0px;
-  outline: none;
-}
-
-
-// // Import custom color overrides
-// @import '../scss/bulma/color-overrides';
-
-// // Import bulma utilities 
-// @import "~bulma/sass/utilities/_all.sass";
-
-// // Any variables you want to change should go here (see import order issues here https://github.com/jgthms/bulma/issues/1651)
-// // Bulma components use !important so all style overrides have to go before the component imports
-// @import '../scss/bulma/navbar-override';
-// @import '../scss/bulma/breadcrumb-override';
-// @import '../scss/bulma/form-override';
-// @import '../scss/bulma/pricing-plan-override';
-// @import '../scss/bulma/steptracker-override';
-
-// $button-focus-border-color: config('colors.white');
-// $button-border-color: none;
-// $button-active-color: none;
-// $button-active-border-color: none;
-
-
 @tailwind components;
-
-// // Bulma Compoents
-// @import "~bulma/sass/components/navbar.sass";
-// @import "~bulma/sass/components/dropdown.sass";
-// @import "~bulma/sass/components/breadcrumb.sass";
-
-
-// // Bulma layout and grid
-// @import "~bulma/sass/grid/_all.sass";
-
-
-// // Bulma Elements
-// @import "~bulma/sass/elements/button.sass";
-// @import "~bulma/sass/elements/form.sass";
-// @import "~bulma/sass/elements/tag.sass";
-// @import "~bulma/sass/elements/container.sass";
-// @import "~bulma/sass/elements/image.sass";
-// @import "~bulma/sass/elements/icon.sass";
-// @import "~bulma/sass/elements/other.sass";
-
+// components
 
 @tailwind utilities;
 
