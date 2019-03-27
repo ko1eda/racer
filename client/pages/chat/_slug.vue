@@ -1,17 +1,13 @@
 <template>
-  <div class="">
-    <Room/>
-  </div>
+  <Room/>
 </template>
 
 <script>
-import Room from "@/components/Room"
+import Room from "@/components/chat/Room"
 export default {
-components : {
-  Room
-}
-
-
+  components : {
+    Room
+  }
 }
 </script>
 
