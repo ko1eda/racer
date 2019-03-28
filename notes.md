@@ -24,7 +24,25 @@
     + https://github.com/benbjohnson/pilosa/blob/master/handler.go
     + https://github.com/benbjohnson/pilosa/blob/master/handler_test.go
 
+## export_test and testing unexported functions from packages 
++ https://www.reddit.com/r/golang/comments/7x1dw5/some_thoughts_on_testing_in_go/
++ https://www.reddit.com/r/golang/comments/a2ysk8/tests_in_test_package_or_not/
+
+
+
+## Crypto & rand & unique identifiers in go
++ http://blog.sgmansfield.com/2016/01/the-hidden-dangers-of-default-rand/
++ https://stackoverflow.com/questions/2662591/go-example-about-crypto-rand
+
+
 ## Errors & solutions
+### GCC compiler error using go modules and go test -race ./...
++ https://github.com/golang/go/issues/27089 -- offers a solution
++ https://github.com/golang/go/issues/26988
+### Difference between compilers 
++ https://stackoverflow.com/questions/25811445/what-are-the-primary-differences-between-gc-and-gccgo
+
+
 ### Htttp & Server
 + There are a number of issues to consider when using golang as an http server
 1. __Headers__
@@ -41,10 +59,6 @@
 + https://stackoverflow.com/questions/32745716/i-need-to-connect-to-an-existing-websocket-server-using-go-lang
 + Cannont use the same endpoint to connect via sock and http https://stackoverflow.com/questions/48006498/is-this-possible-to-server-websocket-handler-and-normal-servlet-over-same-contex
 
-
-### Crypto & rand & unique identifiers in go
-+ http://blog.sgmansfield.com/2016/01/the-hidden-dangers-of-default-rand/
-+ https://stackoverflow.com/questions/2662591/go-example-about-crypto-rand
 
 
 ### Pointers and values

@@ -2,12 +2,15 @@ package broker
 
 import (
 	"sync"
+
+	"github.com/tinylttl/racer/id"
 )
 
 // Broker keeps a mapping of chatIDs and brokers
 // it ensures that only one topic may be active for a given chatID
 type Broker struct {
 	topics map[string]*Topic
+	//idgen	racer.id
 	mu     sync.Mutex
 }
 
@@ -32,7 +35,7 @@ func WithMap(m map[string]*Topic) func(*Broker) {
 
 // NewTopic returns a newly initialized topic with a unique identifier. It also starts the topic. This is a convienience method for NewTopic()
 func (b *Broker) NewTopic() *Topic {
-	g, _ := NewGenerator()
+	g, _ := id.NewGenerator() // this should be injected or be a part of the broker struct
 	id, _ := g.NewID()
 	t := NewTopic(id)
 
