@@ -11,11 +11,9 @@
 
 <script>
 import Nav from "@/components/nav/Navbar"
-// import Drawer from "@/components/nav/Drawer"
 export default {
   components : {
     Nav,
-    // Drawer
   }
 }
 </script>

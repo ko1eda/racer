@@ -1,42 +1,36 @@
 <template>
-  <div/>
-
+  <v-layout>
+    <v-flex sm10 class="">
+      <v-layout column class="tw-h-full">
+        <v-flex>
+          <MessageList :msgs="messages"/>
+        </v-flex>
+        <v-flex shrink class="">
+          <v-text-field
+            box
+            append-outer-icon="send"
+            clearable
+            label="Chat"
+            type="text"
+            hide-details
+            @click:append-outer="submit"
+          />
+        </v-flex>
+      </v-layout>
+    </v-flex>
+  </v-layout>
 </template>
 
 <script>
-import Message from "@/components/chat/Message"
+import MessageList from "@/components/chat/MessageList"
 export default {
   components : {
-    Message
+    MessageList
   },
 
   data() {
     return {
-      messages : [
-        {body: "d"}, 
-        {body: "d"}, 
-        {body: "d"}, 
-        {body: "d"}, 
-        {body: "d"}, 
-        {body: "d"}, 
-        {body: "d"}, 
-        {body: "d"}, 
-        {body: "d"}, 
-        {body: "d"}, 
-        {body: "d"}, 
-        {body: "d"}, 
-        {body: "d"}, 
-        {body: "d"}, 
-        {body: "d"}, 
-        {body: "d"}, 
-        {body: "d"}, 
-        {body: "d"}, 
-        {body: "d"}, 
-        {body: "d"}, 
-        {body: "d"}, 
-    
-    
-        ],
+      messages : [],
       conn : WebSocket,
       form : {
         body : ""
@@ -75,19 +69,11 @@ export default {
 
 
 <style lang="scss" scoped>
-  .offset {
-    height: calc(100vh - 64px);
-  }
-
   .drawer-offset {
     width: 305px;
   }
-
-  .h {
-    max-height: 25%;
-  }
-
 </style>
+
 
 
 
