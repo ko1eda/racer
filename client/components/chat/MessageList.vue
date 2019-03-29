@@ -1,7 +1,7 @@
 <template>
-  <v-responsive :min-height="minheight" :max-height="maxheight" class="tw-overflow-y-auto hide-scroll">
+  <div :style="height" class="tw-overflow-y-auto hide-scroll h">
     <Message v-for="(msg,i) in msgs" :key="i" :data="msg"/>
-  </v-responsive>
+  </div>
 </template>
 
 <script>
@@ -19,30 +19,34 @@ export default {
   },
 
   computed : {
-    minheight() {
-      let h = "80vh"
+    height() {
+      // for mobile and tablet (subtract less because the margins are smaller 16px vs 24px)
+      let h = "calc(100vh - 167px)"
 
-      // portrait mode for phones 
-      if (this.$vuetify.breakpoint.height < 650) h = "60vh"
+      // anything ipad pro or above will have a padding of 24px so we need to subtract more
+      if (this.$vuetify.breakpoint.width >= 1024) h = "calc(100vh - 190px)"
 
-      return h
+
+      return {height: h}
     },
 
-    maxheight() {
-      let h = "80vh"
+    // maxheight() {
+    //   let h = "80vh"
       
-      // portrait mode for phones 
-      if (this.$vuetify.breakpoint.height < 650) h = "60vh"
+    //   // portrait mode for phones 
+    //   if (this.$vuetify.breakpoint.height < 650) h = "60vh"
 
-      // ipad
-      if (this.$vuetify.breakpoint.width < 1024 && this.$vuetify.breakpoint.height >= 1024 ) h = "83vh"
+    //   if (this.$vuetify.breakpoint.height < 800) h = "74vh"
+
+    //   // ipad
+    //   if (this.$vuetify.breakpoint.width < 1024 && this.$vuetify.breakpoint.height >= 1024 ) h = "83vh"
   
 
-      // ipad pro
-      if (this.$vuetify.breakpoint.width === 1024 && this.$vuetify.breakpoint.height === 1366 ) h = "86vh"
+    //   // ipad pro
+    //   if (this.$vuetify.breakpoint.width === 1024 && this.$vuetify.breakpoint.height === 1366 ) h = "86vh"
 
-      return h
-    }
+    //   return h
+    // }
   },
 }
 </script>
