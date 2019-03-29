@@ -7,6 +7,7 @@
         </v-flex>
         <v-flex shrink class="">
           <v-text-field
+            v-model="form.body"
             box
             append-outer-icon="send"
             clearable
@@ -30,7 +31,8 @@ export default {
 
   data() {
     return {
-      messages : [],
+      messages : [
+      ],
       conn : WebSocket,
       form : {
         body : ""
