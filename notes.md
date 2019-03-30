@@ -35,6 +35,20 @@
 + https://stackoverflow.com/questions/2662591/go-example-about-crypto-rand
 
 
+
+## Select statements and two or more ready channels
++ https://stackoverflow.com/questions/47645808/how-does-select-work-when-multiple-channels-are-involved
+
+
+## Noop read closer and reading from request body
++ https://medium.com/@xoen/golang-read-from-an-io-readwriter-without-loosing-its-content-2c6911805361
+
+
+## Good info on how to use the context package correctly
++ https://www.sohamkamani.com/blog/golang/2018-06-17-golang-using-context-cancellation/
++ https://www.reddit.com/r/golang/comments/6s5a7q/context_should_go_away_for_go_2/?utm_source=reddit-android
+
+
 ## Errors & solutions
 ### GCC compiler error using go modules and go test -race ./...
 + https://github.com/golang/go/issues/27089 -- offers a solution
