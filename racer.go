@@ -48,6 +48,9 @@ func NewClient(b Broadcaster, conn Connector) *Client {
 func (c *Client) Run() {
 	ctx, cancel := context.WithCancel(context.Background())
 
+	// TODO: Possibly switch these to prioritize select statements
+	// to handle case where backupper returns an error
+	// https://stackoverflow.com/questions/46200343/force-priority-of-go-select-statement/46202533#46202533
 	go func() {
 		c.Backupper.Run(ctx)
 	}()
