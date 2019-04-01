@@ -47,7 +47,7 @@
 ## Good info on how to use the context package correctly
 + https://www.sohamkamani.com/blog/golang/2018-06-17-golang-using-context-cancellation/
 + https://www.reddit.com/r/golang/comments/6s5a7q/context_should_go_away_for_go_2/?utm_source=reddit-android
-
++ https://medium.com/@cep21/how-to-correctly-use-context-context-in-go-1-7-8f2c0fafdf39
 
 ## Errors & solutions
 ### GCC compiler error using go modules and go test -race ./...

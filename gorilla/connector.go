@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/pkg/errors"
 	"github.com/tinylttl/racer"
 )
 
@@ -41,7 +42,7 @@ type Connector struct {
 
 // NewConnection returns a connector with a newly upgraded socket connection
 // Connector implements racer.Connector interface
-func NewConnection(w http.ResponseWriter, r *http.Request) *Connector {
+func NewConnection(w http.ResponseWriter, r *http.Request) (*Connector, error) {
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
@@ -53,10 +54,14 @@ func NewConnection(w http.ResponseWriter, r *http.Request) *Connector {
 	conn, err := upgrader.Upgrade(w, r, nil)
 
 	if err != nil {
-		panic(err)
+		return nil, errors.Wrapf(err, "could not upgrade connection")
 	}
 
-	return &Connector{conn: conn, rchan: make(chan *racer.Message, 10), wchan: make(chan *racer.Message, 10)}
+	return &Connector{
+		conn:  conn,
+		rchan: make(chan *racer.Message, 10),
+		wchan: make(chan *racer.Message, 10),
+	}, nil
 }
 
 // Read reads data from a socket and returns it on a read-only channel

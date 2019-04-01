@@ -50,18 +50,27 @@ func (h *Handler) handleGetTopic(b *broker.Broker) http.HandlerFunc {
 		chatID := chi.URLParam(r, "chatID")
 
 		if chatID == "" {
-			w.WriteHeader(http.StatusNotFound)
+			// Log here since this is where we handle the error
+			http.Error(w, "", http.StatusNotFound)
 			return
 		}
 
 		b.Lookup(chatID, func(found bool, t *broker.Topic) {
 			if !found {
 				go func() {
-					t.Start() // blocking
+					t.Start() // TODO: PASS CONTEXT TO CANCEL
 					b.Remove(chatID)
 				}()
 			}
-			conn := gorilla.NewConnection(w, r)
+
+			conn, err := gorilla.NewConnection(w, r)
+
+			if err != nil {
+				// Log here since this is where we handle the error
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
 			c := racer.NewClient(t, conn)
 			c.Run()
 		})
