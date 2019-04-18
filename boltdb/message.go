@@ -53,76 +53,74 @@ func (r *Repo) Close() { defer r.db.Close() }
 // }
 
 // FetchX fetches the latest x messages from a given bucket identified by ID
-func (r *Repo) FetchX(ID string, x int) []*racer.Message {
-	res := make(chan [][]byte, x)
+// func (r *Repo) FetchX(ID string, x int) ([]*racer.Message, error) {
+// 	res := make(chan [][]byte, x)
 
-	// This may possibly be bad code goroutine accessing db after view function ends
-	go func() {
-		err := r.db.View(func(tx *bolt.Tx) error {
-			b := tx.Bucket([]byte(ID))
-			c := b.Cursor()
+// 	// This may possibly be bad code goroutine accessing db after view function ends
+// 	go func() {
+// 		err := r.db.View(func(tx *bolt.Tx) error {
+// 			b := tx.Bucket([]byte(ID))
+// 			c := b.Cursor()
 
-			// wrap Cursors Next method
-			// to return nil after a certain thrshold limit
-			var i int
-			cNextLimit := func() (key []byte, value []byte) {
+// 			// wrap Cursors Next method to return nil after a certain thrshold limit
+// 			// i is 1 here because c.First() returns first key val pair
+// 			// if i was 0 based x =1 would return c.First() i = 0 bc this is bultin func, c.NextLimit() i = 0
+// 			i := 1
+// 			cNextLimit := func() (key []byte, value []byte) {
 
-				if i >= x {
-					return nil, nil
-				}
+// 				if i == x {
+// 					return nil, nil
+// 				}
 
-				key, value = c.Next()
+// 				key, value = c.Next()
 
-				i++
+// 				i++
 
-				return key, value
-			}
+// 				return key, value
+// 			}
 
-			// seek from newest date(unix.now().nano()) to oldest date to find most recent messages
-			// for k, v := c.Seek(min); k != nil && bytes.Compare(k, max) <= 0; k, v = c.Next() {
-			// 	fmt.Printf("%s: %s\n", k, v)
-			// }
+// 			// seek from newest date(unix.now().nano()) to oldest date to find most recent messages
+// 			// for k, v := c.Seek(min); k != nil && bytes.Compare(k, max) <= 0; k, v = c.Next() {
+// 			// 	fmt.Printf("%s: %s\n", k, v)
+// 			// }
 
-			for k, v := c.First(); k != nil; k, v = cNextLimit() {
-				// fmt.Printf("key=%s, value=%s\n", k, v)
-				// format [ [[]byte(key), []byte(value)], ... ]
-				res <- [][]byte{k, v}
-			}
+// 			// format [ [[]byte(key), []byte(value)], ... ]
+// 			for k, v := c.First(); k != nil; k, v = cNextLimit() {
+// 				res <- [][]byte{k, v}
+// 			}
 
-			close(res)
+// 			close(res)
 
-			return nil
-		})
+// 			return nil
+// 		})
 
-		if err != nil {
-			// db error
-			panic(err)
-		}
-	}()
+// 		if err != nil {
+// 			panic(err)
+// 		}
+// 	}()
 
-	// read values from the
-	msgs := make([]*racer.Message, 0, x)
-	done := make(chan struct{}, 1)
-	go func() {
-		var msg *racer.Message
-		for item := range res {
-			err := json.Unmarshal(item[1], &msg)
+// 	// read values from the
+// 	msgs := make([]*racer.Message, 0, x)
+// 	done := make(chan struct{}, 1)
+// 	go func() {
+// 		var msg *racer.Message
+// 		for item := range res {
+// 			err := json.Unmarshal(item[1], &msg)
 
-			if err != nil {
-				// unmarshall error
-				panic(err)
-			}
+// 			if err != nil {
+// 				panic(err) // unmarshall error
+// 			}
 
-			msgs = append(msgs, msg)
-		}
+// 			msgs = append(msgs, msg)
+// 		}
 
-		close(done)
-	}()
+// 		close(done)
+// 	}()
 
-	<-done
+// 	<-done
 
-	return msgs
-}
+// 	return msgs, nil
+// }
 
 // Put stores any number of messages to the bucket identified with ID
 func (r *Repo) Put(ID string, msgs ...*racer.Message) error {
@@ -171,49 +169,48 @@ func btoi64(b []byte) int64 {
 }
 
 // FetchX fetches the latest x messages
-// func (r *Repo) FetchX(ID string, x int) []*racer.Message {
-// 	var msg *racer.Message
-// 	msgs := make([]*racer.Message, 0, x)
+func (r *Repo) FetchX(ID string, x int) ([]*racer.Message, error) {
+	var msg *racer.Message
+	msgs := make([]*racer.Message, 0, x)
 
-// 	err := r.db.View(func(tx *bolt.Tx) error {
-// 		b := tx.Bucket([]byte(ID))
-// 		c := b.Cursor()
+	err := r.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(ID))
+		c := b.Cursor()
 
-// 		// wrap Cursors Next method
-// 		// to return nil after a certain thrshold limit
-// 		var i int
-// 		cNextLimit := func() (key []byte, value []byte) {
+		// wrap Cursors Next method to return nil after a certain thrshold limit
+		i := 1
+		cNextLimit := func() (key []byte, value []byte) {
 
-// 			if i >= x {
-// 				return nil, nil
-// 			}
+			if i == x {
+				return nil, nil
+			}
 
-// 			key, value = c.Next()
+			key, value = c.Next()
 
-// 			i++
+			i++
 
-// 			return key, value
-// 		}
+			return key, value
+		}
 
-// 		for k, v := c.First(); k != nil; k, v = cNextLimit() {
-// 			err := json.Unmarshal(v, &msg)
+		for k, v := c.First(); k != nil; k, v = cNextLimit() {
+			err := json.Unmarshal(v, &msg)
 
-// 			if err != nil {
-// 				return err // unmarshall error
-// 			}
+			if err != nil {
+				return errors.Wrap(err, "could not marshall msg")
+			}
 
-// 			msgs = append(msgs, msg)
-// 		}
+			msgs = append(msgs, msg)
+		}
 
-// 		return nil
-// 	})
+		return nil
+	})
 
-// 	if err != nil {
-// 		panic(err)
-// 	}
+	if err != nil {
+		return nil, err
+	}
 
-// 	return msgs
-// }
+	return msgs, nil
+}
 
 // func (r *Repo) Delete(ID string) error {
 

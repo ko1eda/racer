@@ -1,9 +1,11 @@
 package boltdb_test
 
 import (
+	// "fmt"
 	"io/ioutil"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/tinylttl/racer"
 
@@ -44,36 +46,77 @@ func (repo *testrepo) Close() {
 }
 
 func TestPut(t *testing.T) {
-	// make repo call put
-	// expect output
+	t.Run("it puts a message into the database", func(t *testing.T) {
+		tr := newRepo()
 
-	cases := []struct {
-		name string
-		want *racer.Message
-	}{
-		{name: "it puts message into the database", want: &racer.Message{Body: "test"}},
-	}
+		defer tr.Close()
 
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+		want := &racer.Message{Body: "test"}
 
-			tr := newRepo()
-			msgs := []*racer.Message{tc.want}
+		msgs := []*racer.Message{want}
 
-			if err := tr.db.Put("ID", msgs...); err != nil {
-				t.Fatalf("test faild")
-			}
+		if err := tr.db.Put("ID", msgs...); err != nil {
+			t.Fatalf("test faild")
+		}
 
-			got := tr.db.FetchX("ID", 1)
+		got, err := tr.db.FetchX("ID", 1)
 
-			if got[0].Body != tc.want.Body {
-				t.Fatalf("got: %+v want: %+v", got[0], tc.want)
-			}
+		if err != nil {
+			t.Fatal(err)
+		}
 
-		})
+		if got[0].Body != want.Body {
+			t.Fatalf("got: %+v want: %+v", got[0], want)
+		}
+	})
 
-	}
+	t.Run("it puts multiple messages into the database", func(t *testing.T) {
+		tr := newRepo()
 
+		defer tr.Close()
+
+		want := 2
+
+		msgs := []*racer.Message{
+			&racer.Message{Timestamp: time.Now().UnixNano(), Body: "1"},
+			&racer.Message{Timestamp: time.Now().Add(time.Hour * 22).UnixNano(), Body: "2"},
+			&racer.Message{Timestamp: time.Now().Add(time.Hour * 24).UnixNano(), Body: "3"},
+		}
+
+		if err := tr.db.Put("ID", msgs...); err != nil {
+			t.Fatalf("test faild")
+		}
+
+		got, _ := tr.db.FetchX("ID", 2)
+
+		if len(got) != want {
+			t.Fatalf("got: %+v want: %+v", len(got), want)
+		}
+
+	})
+}
+
+func TestFetchX(t *testing.T) {
+	t.Run("it retrieves messages in reverse chronological order", func(t *testing.T) {
+		tr := newRepo()
+
+		defer tr.Close()
+
+		msgs := []*racer.Message{
+			&racer.Message{Timestamp: time.Now().Add(time.Hour * 48).UnixNano(), Body: "1"},
+			&racer.Message{Timestamp: time.Now().Add(time.Hour * 24).UnixNano(), Body: "2"},
+			&racer.Message{Timestamp: time.Now().UnixNano(), Body: "3"},
+		}
+
+		tr.db.Put("ID", msgs...)
+
+		want := msgs[0]
+		got, _ := tr.db.FetchX("ID", 3)
+
+		if got[0].Body != want.Body {
+			t.Fatalf("got: %+v want: %+v", got[0], want)
+		}
+	})
 }
 
 // func TestFetchX(t *testing.T) {
