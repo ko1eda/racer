@@ -85,7 +85,7 @@ func (c *Connector) Read() <-chan *racer.Message {
 		// if we just pass chatmsg it would be passing nil to the unmarshall func.
 		// we could also declare message as a concrete type (without *) and pass its &refrence, doing so intializes the 0 val for chatmsg
 		// and we pass it the address of that.
-		chatmsg := racer.Message{Sent: time.Now().Format(timeFmt), Timestamp: time.Now().UTC().Unix()}
+		chatmsg := racer.Message{Sent: time.Now().Format(timeFmt), Timestamp: time.Now().UTC().UnixNano()}
 		for {
 			err := c.conn.ReadJSON(&chatmsg)
 			// v := json.Unmarshal()

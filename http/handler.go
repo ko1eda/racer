@@ -12,6 +12,7 @@ import (
 // Handler handles all incoming HTTP requests for the application
 type Handler struct {
 	Router chi.Router
+	Repo   racer.MessageRepo
 }
 
 // NewHandler returns a Handler instance configured with a new router
@@ -71,7 +72,7 @@ func (h *Handler) handleGetTopic(b *broker.Broker) http.HandlerFunc {
 				return
 			}
 
-			c := racer.NewClient(t, conn)
+			c := racer.NewClient(t, conn, repo)
 			c.Run()
 		})
 
