@@ -9,7 +9,7 @@ import (
 	"github.com/tinylttl/racer"
 )
 
-// var _ racer.MessageRepo = (*Repo)(nil)
+var _ racer.MessageRepo = (*MessageRepo)(nil)
 
 // MessageRepo provides an interface for interacting with a storage solution
 // type MessageRepo interface {
@@ -19,34 +19,15 @@ import (
 // 	Delete(ID string) error
 // }
 
-// Repo implements racer.MessageRepo
-type Repo struct {
-	db *bolt.DB
+// MessageRepo implements racer.MessageRepo
+type MessageRepo struct {
+	db *DB
 }
 
-// NewRepo returns a new repository intialized with an open
-// DB connection
-// TODO: Make This configureable
-func NewRepo(path string) (*Repo, error) {
-	// /boltdb/racer.db
-	db, err := bolt.Open(path, 0600, nil)
-
-	// wrap error and return,
-	// in client, type switch based on returned error type
-	// if DBError shut down the system bc
-	// we have a serious problem
-	if err != nil {
-		return nil, err
-	}
-
-	r := &Repo{db: db}
-
-	return r, nil
+// NewMessageRepo returns a new repository intialized with a default path
+func NewMessageRepo(db *DB) *MessageRepo {
+	return &MessageRepo{db: db}
 }
-
-// Close closes the repos database connection
-// you can no longer use it to connect to the database after calling this.
-func (r *Repo) Close() { defer r.db.Close() }
 
 // func (r *Repo) Fetch(ID string) []*racer.Message {
 
@@ -123,7 +104,7 @@ func (r *Repo) Close() { defer r.db.Close() }
 // }
 
 // Put stores any number of messages to the bucket identified with ID
-func (r *Repo) Put(ID string, msgs ...*racer.Message) error {
+func (r *MessageRepo) Put(ID string, msgs ...*racer.Message) error {
 	err := r.db.Batch(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists([]byte(ID))
 
@@ -169,7 +150,7 @@ func btoi64(b []byte) int64 {
 }
 
 // FetchX fetches the latest x messages
-func (r *Repo) FetchX(ID string, x int) ([]*racer.Message, error) {
+func (r *MessageRepo) FetchX(ID string, x int) ([]*racer.Message, error) {
 	var msg *racer.Message
 	msgs := make([]*racer.Message, 0, x)
 

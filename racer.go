@@ -34,8 +34,14 @@ type Broadcaster interface {
 }
 
 // NewClient returns a new Chat client instance that is registered with a broadcaster
-func NewClient(b Broadcaster, conn Connector) *Client {
-	c := &Client{ID: fmt.Sprintf("%d", rand.Intn(100000)), Receive: make(chan *broker.Message, 1), Broadcaster: b, Conn: conn}
+func NewClient(broadcaster Broadcaster, conn Connector, backupper *Backupper) *Client {
+	c := &Client{
+		ID: fmt.Sprintf("%d", rand.Intn(100000)), 
+		Receive: make(chan *broker.Message, 1), 
+		Broadcaster: broadcaster, 
+		Conn: conn,
+		Backupper: backupper,
+	}
 
 	c.Broadcaster.Register() <- c.Receive
 
@@ -47,7 +53,6 @@ func NewClient(b Broadcaster, conn Connector) *Client {
 // The third reads messages recieved from said broadcaster finally writing them back through to the connection.
 func (c *Client) Run() {
 	ctx, cancel := context.WithCancel(context.Background())
-
 	// TODO: Possibly switch these to prioritize select statements
 	// to handle case where backupper returns an error
 	// https://stackoverflow.com/questions/46200343/force-priority-of-go-select-statement/46202533#46202533
@@ -82,10 +87,10 @@ type Message struct {
 
 // MessageRepo provides an interface for interacting with a storage solution
 type MessageRepo interface {
-	Fetch(ID string) []*Message
-	FetchX(ID string, x int) []*Message
+	// Fetch(ID string) []*Message
+	FetchX(ID string, x int) ([]*Message, error)
 	Put(ID string, msgs ...*Message) error
-	Delete(ID string) error
+	// Delete(ID string) error
 }
 
 // Backupper will backup messages to its store after
@@ -96,12 +101,31 @@ type MessageRepo interface {
 // in the data store.
 type Backupper struct {
 	cache    []*Message
+	ticker   *time.Ticker
 	store    MessageRepo
-	ticker   time.Ticker
-	interval int
 	id       string
 	busy     bool
 }
+
+
+// NewBackupper creates a new Backupper initialized with default settings.
+func NewBackupper(id string, store MessageRepo, opts ...func(*Backupper)) *Backupper {
+	b := &Backupper{
+		cache : make([]*Message, 0, 25),
+		ticker : time.NewTicker(time.Minute * 5),
+		id : id, 
+		store : store,
+		busy : false,
+	}
+
+	for _, opt := range opts {
+		opt(b)
+	}
+
+	return b
+}
+
+
 
 // Run starts the backupper and listens forever on its ticker channel,
 // calling backup at the desired interval.
@@ -112,6 +136,8 @@ loop:
 	for {
 		select {
 		case <-b.ticker.C:
+			fmt.Println("Backup called")
+			
 			b.busy = true
 
 			// TODO: handle error from backup

@@ -15,9 +15,10 @@ type Handler struct {
 	Repo   racer.MessageRepo
 }
 
-// NewHandler returns a Handler instance configured with a new router
-func NewHandler() *Handler {
-	h := &Handler{}
+// NewHandler returns a Handler configured with a Router.
+func NewHandler(repo racer.MessageRepo) *Handler {
+	h := &Handler{Repo: repo}
+
 	h.Router = NewRouter(h)
 
 	return h
@@ -65,17 +66,16 @@ func (h *Handler) handleGetTopic(b *broker.Broker) http.HandlerFunc {
 			}
 
 			conn, err := gorilla.NewConnection(w, r)
-
 			if err != nil {
-				// Log here since this is where we handle the error
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				http.Error(w, err.Error(), http.StatusInternalServerError) 
 				return
 			}
 
-			c := racer.NewClient(t, conn, repo)
+			backupper := racer.NewBackupper(chatID, h.Repo)
+			
+			c := racer.NewClient(t, conn, backupper)
 			c.Run()
 		})
-
 	})
 }
 

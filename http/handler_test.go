@@ -15,6 +15,11 @@ import (
 	"github.com/tinylttl/racer/broker"
 )
 
+// type testrepo struct {}
+
+// func (tr *testrepo) FetchX() {}
+
+
 func TestHandleGetTopic(t *testing.T) {
 	t.Run("It creates a new broker for each new chatID", func(t *testing.T) {
 		manager := broker.NewBroker()
